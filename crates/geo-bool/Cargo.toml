@@ -1,10 +1,11 @@
 [package]
 name = "geo-bool"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 geo-core = { path = "../geo-core" }
-geo = "0.28"
-geo-types = "0.7"
+geo.workspace = true
+geo-types.workspace = true

@@ -28,7 +28,7 @@ pub fn transform_coords(point: &Point, from: CoordSystem, to: CoordSystem) -> Po
     match (from, to) {
         (CoordSystem::Wgs84, CoordSystem::WebMercator) => wgs84_to_web_mercator(point.x, point.y),
         (CoordSystem::WebMercator, CoordSystem::Wgs84) => web_mercator_to_wgs84(point.x, point.y),
-        _ => point.clone(),
+        _ => *point,
     }
 }
 

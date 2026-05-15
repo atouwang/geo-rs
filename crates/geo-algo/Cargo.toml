@@ -9,3 +9,4 @@ repository.workspace = true
 geo-core = { path = "../geo-core" }
 geo.workspace = true
 geo-types.workspace = true
+geo-buffer.workspace = true

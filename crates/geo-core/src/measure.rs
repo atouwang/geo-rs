@@ -161,3 +161,42 @@ mod tests {
         assert!(d > 1000.0 && d < 1200.0);
     }
 }
+
+impl From<&geo_types::Geometry> for crate::types::Geometry {
+    fn from(g: &geo_types::Geometry) -> Self {
+        use crate::types::*;
+        use geo_types::Geometry as Gt;
+        match g {
+            Gt::Point(pt) => Geometry::Point(Point { x: pt.x(), y: pt.y() }),
+            Gt::MultiPoint(mp) => Geometry::MultiPoint(MultiPoint {
+                points: mp.iter().map(|p| Point { x: p.x(), y: p.y() }).collect(),
+            }),
+            Gt::LineString(ls) => Geometry::LineString(LineString {
+                coords: ls.coords().map(|c| Point { x: c.x, y: c.y }).collect(),
+            }),
+            Gt::MultiLineString(mls) => Geometry::MultiLineString(MultiLineString {
+                lines: mls.iter().map(|ls| LineString {
+                    coords: ls.coords().map(|c| Point { x: c.x, y: c.y }).collect(),
+                }).collect(),
+            }),
+            Gt::Polygon(p) => Geometry::Polygon(Polygon {
+                exterior: LineString { coords: p.exterior().coords().map(|c| Point { x: c.x, y: c.y }).collect() },
+                interiors: p.interiors().iter().map(|ls| LineString {
+                    coords: ls.coords().map(|c| Point { x: c.x, y: c.y }).collect(),
+                }).collect(),
+            }),
+            Gt::MultiPolygon(mp) => Geometry::MultiPolygon(MultiPolygon {
+                polygons: mp.iter().map(|p| Polygon {
+                    exterior: LineString { coords: p.exterior().coords().map(|c| Point { x: c.x, y: c.y }).collect() },
+                    interiors: p.interiors().iter().map(|ls| LineString {
+                        coords: ls.coords().map(|c| Point { x: c.x, y: c.y }).collect(),
+                    }).collect(),
+                }).collect(),
+            }),
+            Gt::GeometryCollection(gc) => Geometry::GeometryCollection(
+                gc.iter().map(|g| g.into()).collect(),
+            ),
+            _ => Geometry::GeometryCollection(vec![]),
+        }
+    }
+}
