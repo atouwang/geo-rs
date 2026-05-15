@@ -49,4 +49,14 @@ mod tests {
         let results = tree.search_bbox(&BBox { min_x: 0.0, min_y: 0.0, max_x: 5.0, max_y: 5.0 });
         assert_eq!(results.len(), 2);
     }
+
+    #[test]
+    fn test_nearest() {
+        let mut tree = RTree::new();
+        tree.insert_point(&Point { x: 1.0, y: 1.0 }, 100);
+        tree.insert_point(&Point { x: 10.0, y: 10.0 }, 200);
+        let nearest = tree.nearest(&Point { x: 0.0, y: 0.0 }).unwrap();
+        assert_eq!(nearest.0, 100);
+        assert!(nearest.1 < 2.0);
+    }
 }
