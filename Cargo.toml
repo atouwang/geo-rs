@@ -7,6 +7,7 @@ members = [
     "crates/geo-index",
     "crates/geo-grid",
     "crates/geo-wasm",
+    "benches/rust",
 ]
 resolver = "2"
 
@@ -31,6 +32,13 @@ wasm-bindgen-test = "0.2"
 console_error_panic_hook = "0.1"
 wee_alloc = "0.4"
 getrandom = { version = "0.2", features = ["js"] }
+criterion = { version = "0.5", default-features = false }
+
+[profile.bench]
+opt-level = 3
+lto = true
+codegen-units = 1
+debug = false
 
 [profile.release]
 opt-level = "s"

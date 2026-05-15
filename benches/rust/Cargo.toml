@@ -1,0 +1,22 @@
+[package]
+name = "geo-bench"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[[bench]]
+name = "core_ops"
+path = "core_ops.rs"
+harness = false
+
+[dependencies]
+geo-core = { path = "../../crates/geo-core" }
+geo-algo = { path = "../../crates/geo-algo" }
+geo-bool = { path = "../../crates/geo-bool" }
+geo-set = { path = "../../crates/geo-set" }
+geo-index = { path = "../../crates/geo-index" }
+geo-grid = { path = "../../crates/geo-grid" }
+criterion.workspace = true
+serde_json.workspace = true

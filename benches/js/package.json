@@ -1,0 +1,12 @@
+{
+  "name": "geo-rs-bench",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "node bench_runner.mjs"
+  },
+  "dependencies": {
+    "@turf/turf": "^7.0.0",
+    "benchmark": "github:bestiejs/benchmark.js"
+  }
+}
