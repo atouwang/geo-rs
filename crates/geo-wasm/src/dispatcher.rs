@@ -163,6 +163,9 @@ fn dispatch_unary(op: u8, geom: &Geometry, param: f64) -> Result<Geometry, Strin
     match op {
         OP_BUFFER => geo_algo::buffer::buffer(geom, param, Units::Meters).map_err(|e| e.to_string()),
         OP_SIMPLIFY => geo_algo::simplify::simplify(geom, param).map_err(|e| e.to_string()),
+        OP_CENTROID => geo_core::measure::centroid(geom)
+            .map(|pt| Geometry::Point(pt))
+            .ok_or_else(|| "centroid undefined for this geometry".to_string()),
         _ => Err(format!("Unknown unary op: {}", op)),
     }
 }

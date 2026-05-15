@@ -1,5 +1,5 @@
 import { GeoEngine } from '../engine'
-import type { Feature, Polygon, Point } from 'geojson'
+import type { Feature, Point, Polygon } from 'geojson'
 import type { GeoJSON } from '../types'
 import { getSharedEngine, releaseSharedEngine } from './shared'
 
@@ -44,30 +44,25 @@ export async function length(geom: GeoJSON): Promise<number> {
 }
 
 export async function centroid(geom: GeoJSON): Promise<Feature<Point>> {
-  // centroid is computed via measure; for now just load and read with stub
   const engine = await getSharedEngine()
   try {
     const h = await engine.load(geom)
-    const result = await engine.read(h)
-    engine.free(h)
-    // Placeholder: return first coordinate as centroid
-    return result as unknown as Feature<Point>
+    const ch = await engine.centroid(h)
+    const result = await engine.read(ch) as Feature<Point>
+    engine.free(h, ch)
+    return result
   } finally {
     releaseSharedEngine()
   }
 }
 
-export async function bbox(
-  geom: GeoJSON,
-): Promise<[number, number, number, number]> {
+export async function bbox(geom: GeoJSON): Promise<{ minX: number; minY: number; maxX: number; maxY: number }> {
   const engine = await getSharedEngine()
   try {
     const h = await engine.load(geom)
-    // Use execute_measure with BBOX op code
-    // Placeholder: approximate bbox from read geometry
-    const result = await engine.read(h)
+    const result = await engine.bbox(h)
     engine.free(h)
-    return [0, 0, 0, 0] // placeholder
+    return result
   } finally {
     releaseSharedEngine()
   }

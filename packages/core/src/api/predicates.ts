@@ -33,9 +33,9 @@ export async function crosses(a: GeoJSON, b: GeoJSON): Promise<boolean> {
   try {
     const ha = await engine.load(a)
     const hb = await engine.load(b)
-    // CROSSES op requires wasm binding; placeholder
+    const result = await engine.crosses(ha, hb)
     engine.free(ha, hb)
-    return false
+    return result
   } finally {
     releaseSharedEngine()
   }

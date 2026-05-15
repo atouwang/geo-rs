@@ -55,12 +55,25 @@ export class GeoEngine {
     return (await this.call('execute_measure', [OP_CODES.LENGTH, handle])) as number
   }
 
+  async centroid(handle: bigint): Promise<bigint> {
+    return (await this.call('execute_unary', [OP_CODES.CENTROID, handle, 0])) as bigint
+  }
+
+  async bbox(handle: bigint): Promise<{ minX: number; minY: number; maxX: number; maxY: number }> {
+    const geom = await this.read(handle)
+    return computeBBox(geom)
+  }
+
   async contains(a: bigint, b: bigint): Promise<boolean> {
     return (await this.call('execute_bool', [OP_CODES.CONTAINS, a, b])) as boolean
   }
 
   async intersects(a: bigint, b: bigint): Promise<boolean> {
     return (await this.call('execute_bool', [OP_CODES.INTERSECTS, a, b])) as boolean
+  }
+
+  async crosses(a: bigint, b: bigint): Promise<boolean> {
+    return (await this.call('execute_bool', [OP_CODES.CROSSES, a, b])) as boolean
   }
 
   async union(a: bigint, b: bigint): Promise<bigint> {
@@ -97,4 +110,35 @@ export class GeoEngine {
   private async call(method: string, args: unknown[]): Promise<unknown> {
     return this.worker.call(method, args)
   }
+}
+
+function forEachCoord(geom: unknown, fn: (c: [number, number]) => void): void {
+  const g = geom as Record<string, unknown>
+  const type = g.type as string
+  if (type === 'Point') {
+    fn((g.coordinates as [number, number]))
+  } else if (type === 'MultiPoint' || type === 'LineString') {
+    for (const c of (g.coordinates as number[][])) fn([c[0], c[1]])
+  } else if (type === 'MultiLineString' || type === 'Polygon') {
+    for (const ring of (g.coordinates as number[][][])) {
+      for (const c of ring) fn([c[0], c[1]])
+    }
+  } else if (type === 'MultiPolygon') {
+    for (const poly of (g.coordinates as number[][][][])) {
+      for (const ring of poly) {
+        for (const c of ring) fn([c[0], c[1]])
+      }
+    }
+  } else if (type === 'GeometryCollection') {
+    for (const sub of (g.geometries as Record<string, unknown>[])) forEachCoord(sub, fn)
+  }
+}
+
+export function computeBBox(geom: unknown): { minX: number; minY: number; maxX: number; maxY: number } {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  forEachCoord(geom, ([x, y]) => {
+    if (x < minX) minX = x; if (y < minY) minY = y
+    if (x > maxX) maxX = x; if (y > maxY) maxY = y
+  })
+  return { minX, minY, maxX, maxY }
 }
