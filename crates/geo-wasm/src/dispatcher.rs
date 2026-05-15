@@ -70,8 +70,8 @@ impl WasmEngine {
 
     pub fn stats_json(&self) -> String {
         let s = self.arena.stats();
-        format!(r#"{{"active":{},"allocated":{},"max":{}}}"#,
-            s.active_geometries, s.total_allocated, s.max_memory)
+        format!(r#"{{"active":{},"refs":{},"allocated":{},"max":{}}}"#,
+            s.active_geometries, s.total_references, s.total_allocated, s.max_memory)
     }
 
     pub fn points_within(&self, pts_handle: u64, poly_handle: u64) -> Result<Vec<usize>, String> {
