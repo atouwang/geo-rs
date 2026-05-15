@@ -27,8 +27,10 @@ rstar = "0.12"
 kdbush = "0.2"
 flatbuffers = "24"
 wasm-bindgen = "0.2"
+wasm-bindgen-test = "0.2"
 console_error_panic_hook = "0.1"
 wee_alloc = "0.4"
+getrandom = { version = "0.2", features = ["js"] }
 
 [profile.release]
 opt-level = "s"

@@ -1,0 +1,42 @@
+// FlatBuffers schema for zero-copy geometry transfer
+// Requires flatc compiler to generate Rust/TypeScript bindings
+// Install: cargo install flatbuffers (or download from github.com/google/flatbuffers)
+
+namespace geo_rs;
+
+table Point { x: float64; y: float64; }
+table LineString { coords: [Point]; }
+table Polygon { exterior: LineString; interiors: [LineString]; }
+
+union GeometryValue {
+    Point,
+    MultiPoint,
+    LineString,
+    MultiLineString,
+    Polygon,
+    MultiPolygon,
+}
+
+table MultiPoint { points: [Point]; }
+table MultiLineString { lines: [LineString]; }
+table MultiPolygon { polygons: [Polygon]; }
+
+table Geometry {
+    value: GeometryValue;
+}
+
+table LoadRequest { geometries: [Geometry]; }
+
+table OpRequest {
+    op_code: ubyte;
+    handle_a: uint64;
+    handle_b: uint64;
+    params: [float64];
+}
+
+table OpResponse {
+    result_handle: uint64;
+    error: string;
+}
+
+root_type OpRequest;
