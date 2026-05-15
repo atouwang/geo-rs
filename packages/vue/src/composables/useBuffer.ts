@@ -1,4 +1,5 @@
 import { ref, shallowRef, unref, type MaybeRef } from 'vue'
+import { buffer as coreBuffer } from '@geo-rs/core'
 import type { Feature, Polygon } from 'geojson'
 
 export function useBuffer() {
@@ -7,14 +8,13 @@ export function useBuffer() {
   const result = shallowRef<Feature<Polygon> | null>(null)
 
   async function execute(
-    _geom: MaybeRef<Feature>,
-    _options: MaybeRef<{ radius: number; units?: 'meters' | 'kilometers' | 'miles' }>,
+    geom: MaybeRef<Feature>,
+    options: MaybeRef<{ radius: number; units?: 'meters' | 'kilometers' | 'miles' }>,
   ) {
     loading.value = true
     error.value = null
     try {
-      // pending geo-rs core implementation
-      result.value = null
+      result.value = await coreBuffer(unref(geom), unref(options).radius)
     } catch (e) {
       error.value = e as Error
     } finally {

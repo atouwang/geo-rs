@@ -1,8 +1,18 @@
 # Architecture Design — geo-rs
 
+## Current Implementation Status (May 2026)
+
+All 6 phases delivered. See [IMPLEMENTATION.md](IMPLEMENTATION.md).
+
+Key deviations from original design (intentional):
+- **Transport**: JSON instead of FlatBuffers. `.fbs` schema in repo for future zero-copy upgrade.
+- **No Turf.js fallback**: WASM 97%+ coverage. `WasmNotSupportedError` thrown instead.
+- **No SharedArrayBuffer yet**: postMessage+JSON; SAB+FlatBuffers planned as combined perf upgrade.
+- **No comlink**: manual RPC avoids extra dependency.
+
 ## 1. Project Vision
 
-Build the browser-native geospatial analysis library that Turf.js users have been waiting for — **Rust-powered speed with TypeScript ergonomics**. The key insight: previous Rust+WASM attempts died because they serialized geometery data on every operation call. We serialize once at import, once at export, and keep everything else in WASM memory.
+Build the browser-native geospatial analysis library that Turf.js users have been waiting for — **Rust-powered speed with TypeScript ergonomics**. The key insight: previous Rust+WASM attempts died because they serialized geometry data on every operation call. We serialize once at import, once at export, and keep everything else in WASM memory.
 
 ### 1.1 Non-Goals (for v1)
 

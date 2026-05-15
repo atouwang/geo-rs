@@ -88,6 +88,10 @@ export class GeoEngine {
     return (await this.call('execute_binary', [OP_CODES.DIFFERENCE, a, b])) as bigint
   }
 
+  async voronoi(pointsHandle: bigint, bbox: { minX: number; minY: number; maxX: number; maxY: number }): Promise<bigint> {
+    return (await this.call('voronoi', [pointsHandle, JSON.stringify(bbox)])) as bigint
+  }
+
   free(...handles: bigint[]): void {
     for (const h of handles) {
       this.worker.call('free', [h]).catch(() => {})
