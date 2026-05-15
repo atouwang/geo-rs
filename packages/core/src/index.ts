@@ -1,6 +1,11 @@
 export { GeoEngine } from './engine'
-export type { Engine, EngineConfig, GeoResult } from './types'
+export {
+  checkWasmSupport,
+  WasmNotSupportedError,
+} from './worker-manager'
+export type { EngineConfig, GeoJSON } from './types'
 
 export { buffer, area, length, centroid, bbox } from './api/measure'
 export { contains, intersects, crosses } from './api/predicates'
 export { union, intersect, difference } from './api/set-ops'
+export { shutdownSharedEngine } from './api/shared'

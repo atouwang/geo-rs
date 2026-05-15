@@ -4,11 +4,11 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/index.ts',
-      formats: ['es', 'cjs'],
-      fileName: (format) => format === 'es' ? 'index.mjs' : 'index.js',
+      formats: ['es'],
+      fileName: () => 'index.mjs',
     },
-    rollupOptions: {
-      external: ['@turf/turf'],
-    },
+  },
+  worker: {
+    format: 'es',
   },
 })

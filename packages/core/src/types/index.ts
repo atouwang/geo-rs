@@ -1,26 +1,30 @@
-import type { Feature, Polygon, MultiPolygon, Point, LineString, Geometry } from 'geojson'
+import type { Feature, Geometry, Polygon, MultiPolygon, Point, LineString } from 'geojson'
+
+export type { Feature, Geometry, Polygon, MultiPolygon, Point, LineString }
 
 export type GeoJSON = Feature | Geometry
 
-export { Feature, Polygon, MultiPolygon, Point, LineString }
-
 export interface EngineConfig {
+  /** Memory limit for the WASM arena in bytes (default: 256MB) */
   memoryLimit?: number
-  workerUrl?: string | URL
+  /** Custom URL for the WASM engine worker */
+  workerUrl?: string
 }
 
-export interface GeoResult<T = GeoJSON> {
-  data: T
-  duration: number
+export interface WasmEngine {
+  load(geojson: string): bigint
+  read(handle: bigint): string
+  execute_unary(op_code: number, handle: bigint, param: number): bigint
+  execute_binary(op_code: number, handle_a: bigint, handle_b: bigint): bigint
+  execute_bool(op_code: number, handle_a: bigint, handle_b: bigint): boolean
+  execute_measure(op_code: number, handle: bigint): number
+  free(handle: bigint): void
+  free_all(): void
+  stats(): string
 }
 
-export interface Engine {
-  load(geojson: GeoJSON): Promise<bigint>
-  buffer(handle: bigint, radius: number): Promise<bigint>
-  intersect(a: bigint, b: bigint): Promise<bigint>
-  union(a: bigint, b: bigint): Promise<bigint>
-  contains(a: bigint, b: bigint): Promise<boolean>
-  read(handle: bigint): Promise<GeoJSON>
-  free(...handles: bigint[]): void
-  destroy(): void
+export enum Units {
+  Meters = 'meters',
+  Kilometers = 'kilometers',
+  Miles = 'miles',
 }
