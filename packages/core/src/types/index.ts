@@ -9,6 +9,10 @@ export interface EngineConfig {
   memoryLimit?: number
   /** Custom URL for the WASM engine worker */
   workerUrl?: string
+  /** HTMLCanvasElement to transfer as OffscreenCanvas to worker */
+  canvas?: HTMLCanvasElement
+  /** Use SharedWorker instead of DedicatedWorker */
+  shared?: boolean
 }
 
 export interface WasmEngine {

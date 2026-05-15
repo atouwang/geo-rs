@@ -1,3 +1,4 @@
+export {}
 let engine: any = null
 
 async function init() {

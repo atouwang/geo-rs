@@ -6,17 +6,31 @@ type PendingRequest = {
 let nextId = 0
 
 export class WorkerManager {
-  private worker: Worker
+  private worker: Worker | SharedWorker
   private workerUrl: string | URL
   private pending = new Map<number, PendingRequest>()
   private ready = false
   private readyPromise: Promise<void>
+  private sharedMode: boolean
 
-  constructor(workerUrl?: string | URL) {
-    this.workerUrl = workerUrl ?? new URL('./worker/engine.worker.ts', import.meta.url)
-    this.worker = new Worker(this.workerUrl, { type: 'module' })
-    this.worker.onmessage = this.onMessage.bind(this)
-    this.worker.onerror = this.onError.bind(this)
+  constructor(options?: { workerUrl?: string | URL; canvas?: HTMLCanvasElement; shared?: boolean }) {
+    this.sharedMode = options?.shared ?? false
+    const url = options?.workerUrl ?? new URL('./worker/engine.worker.ts', import.meta.url)
+    this.workerUrl = url
+
+    if (options?.canvas) {
+      const offscreen = options.canvas.transferControlToOffscreen()
+      this.worker = new Worker(url, { type: 'module' })
+      ;(this.worker as Worker).postMessage({ type: 'init_canvas', canvas: offscreen }, [offscreen])
+    } else if (this.sharedMode) {
+      this.worker = new SharedWorker(url, { type: 'module' })
+      ;(this.worker as SharedWorker).port.onmessage = this.onMessage.bind(this)
+      ;(this.worker as SharedWorker).port.start()
+    } else {
+      this.worker = new Worker(url, { type: 'module' })
+      ;(this.worker as Worker).onmessage = this.onMessage.bind(this)
+      ;(this.worker as Worker).onerror = this.onError.bind(this)
+    }
     this.readyPromise = this.waitForReady()
   }
 
@@ -30,7 +44,7 @@ export class WorkerManager {
           reject(new Error(e.data.message))
         }
       }
-      this.worker.addEventListener('message', handler)
+      ;(this.worker as any).addEventListener('message', handler)
       // Timeout after 10s
       setTimeout(() => {
         if (!this.ready) reject(new Error('WASM engine initialization timed out'))
@@ -65,14 +79,29 @@ export class WorkerManager {
     this.readyPromise = this.reconnect()
   }
 
+  private postMessage(msg: unknown, transfer?: Transferable[]): void {
+    if (this.sharedMode) {
+      (this.worker as SharedWorker).port.postMessage(msg, transfer ? { transfer } : undefined)
+    } else {
+      (this.worker as Worker).postMessage(msg, transfer ? { transfer } : undefined)
+    }
+  }
+
   private async reconnect(): Promise<void> {
     const maxDelay = 30000
     for (let delay = 1000; delay <= maxDelay; delay *= 2) {
       try {
-        this.worker.terminate()
-        this.worker = new Worker(this.workerUrl, { type: 'module' })
-        this.worker.onmessage = this.onMessage.bind(this)
-        this.worker.onerror = this.onError.bind(this)
+        if (this.sharedMode) {
+          (this.worker as SharedWorker).port.close()
+          this.worker = new SharedWorker(this.workerUrl, { type: 'module' })
+          ;(this.worker as SharedWorker).port.onmessage = this.onMessage.bind(this)
+          ;(this.worker as SharedWorker).port.start()
+        } else {
+          (this.worker as Worker).terminate()
+          this.worker = new Worker(this.workerUrl, { type: 'module' })
+          ;(this.worker as Worker).onmessage = this.onMessage.bind(this)
+          ;(this.worker as Worker).onerror = this.onError.bind(this)
+        }
         await this.waitForReadyInternal()
         this.ready = true
         return
@@ -89,7 +118,10 @@ export class WorkerManager {
         if (e.data?.type === 'ready') resolve()
         else if (e.data?.type === 'error') reject(new Error(e.data.message))
       }
-      this.worker.addEventListener('message', handler, { once: true })
+      const target = this.sharedMode
+        ? (this.worker as SharedWorker).port
+        : (this.worker as Worker)
+      ;(target as any).addEventListener('message', handler, { once: true })
       setTimeout(() => reject(new Error('Worker init timeout')), 10000)
     })
   }
@@ -103,12 +135,16 @@ export class WorkerManager {
       for (const arg of args) {
         if (arg instanceof Uint8Array) transfer.push(arg.buffer)
       }
-      this.worker.postMessage({ id, method, args }, { transfer })
+      this.postMessage({ id, method, args }, transfer)
     })
   }
 
   destroy(): void {
-    this.worker.terminate()
+    if (this.sharedMode) {
+      (this.worker as SharedWorker).port.close()
+    } else {
+      (this.worker as Worker).terminate()
+    }
     this.pending.clear()
     this.ready = false
   }

@@ -27,7 +27,11 @@ export class GeoEngine {
       GeoEngine.wasmChecked = true
       if (!supported) throw new WasmNotSupportedError()
     }
-    const wm = new WorkerManager(config?.workerUrl)
+    const wm = new WorkerManager({
+      workerUrl: config?.workerUrl,
+      canvas: config?.canvas,
+      shared: config?.shared,
+    })
     await wm.ensureReady()
     return new GeoEngine(wm)
   }
