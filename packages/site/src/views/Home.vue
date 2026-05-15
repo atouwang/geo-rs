@@ -1,63 +1,71 @@
 <script setup lang="ts">
+const benchData = [
+  { op: 'area', time: '46 ns' },
+  { op: 'R-tree search (10K pts)', time: '33 ns' },
+  { op: 'GeoJSON parse', time: '473 ns' },
+  { op: 'centroid', time: '239 ns' },
+  { op: 'buffer', time: '943 ns' },
+  { op: 'contains', time: '2.0 us' },
+  { op: 'union (two polygons)', time: '5.8 us' },
+  { op: 'simplify (1000 pts)', time: '54 us' },
+]
+const features = [
+  { title: 'Buffer', desc: 'Polygon inflation/deflation via straight skeleton' },
+  { title: 'Set Operations', desc: 'Union, intersection, difference, XOR' },
+  { title: 'Spatial Predicates', desc: 'All 8 DE-9IM relations' },
+  { title: 'Spatial Indexing', desc: 'R*-Tree and KD-Tree' },
+  { title: 'Voronoi & Grids', desc: 'Voronoi, hex, square, triangle grids' },
+  { title: 'Isolines', desc: 'Marching Squares contour extraction' },
+  { title: 'Coordinate Transforms', desc: 'WGS84, Web Mercator, Cartesian' },
+  { title: 'Web Worker + WASM', desc: 'Non-blocking dedicated thread' },
+]
 </script>
 
 <template>
-  <div class="home">
-    <section class="hero">
-      <h2>Browser-Native Geospatial Analysis</h2>
-      <p>Rust-powered spatial operations compiled to WebAssembly. <strong>Drop-in faster</strong> alternative to Turf.js.</p>
-    </section>
-
-    <section class="status">
-      <h3>Project Status</h3>
-      <div class="status-grid">
-        <div class="status-card done">
-          <span class="dot" />
-          <span>Rust Workspace (7 crates)</span>
-        </div>
-        <div class="status-card done">
-          <span class="dot" />
-          <span>geo-core types, measure, convert</span>
-        </div>
-        <div class="status-card in-progress">
-          <span class="dot" />
-          <span>WASM Bridge & TS SDK</span>
-        </div>
-        <div class="status-card pending">
-          <span class="dot" />
-          <span>Playground & Benchmarks</span>
-        </div>
+  <section class="hero">
+    <h2>Browser-Native Geospatial Analysis</h2>
+    <p>Rust-powered spatial operations compiled to WebAssembly. Drop-in faster alternative to Turf.js.</p>
+  </section>
+  <section>
+    <h3>Performance Highlights</h3>
+    <div class="bench-grid">
+      <div v-for="b in benchData" :key="b.op" class="bench-card">
+        <div class="bench-time">{{ b.time }}</div>
+        <div class="bench-op">{{ b.op }}</div>
       </div>
-    </section>
-  </div>
+    </div>
+    <p style="margin-top:12px"><router-link to="/benchmarks">View full benchmarks &rarr;</router-link></p>
+  </section>
+  <section>
+    <h3>Supported Operations</h3>
+    <div class="feature-grid">
+      <div v-for="f in features" :key="f.title" class="feature-card">
+        <h4>{{ f.title }}</h4>
+        <p>{{ f.desc }}</p>
+      </div>
+    </div>
+  </section>
+  <section>
+    <h3>Quick Start</h3>
+    <pre class="code-block"><code>npm install @geo-rs/core
+
+import { buffer, intersect } from '@geo-rs/core'
+
+const zone = await buffer(cityCenter, { radius: 500, units: 'meters' })
+const overlap = await intersect(zone, buildings)</code></pre>
+  </section>
 </template>
 
 <style scoped>
-.hero { margin-bottom: 48px; }
-.hero h2 { font-size: 24px; margin-bottom: 8px; }
-.hero p { color: var(--text-dim); font-size: 16px; }
-
-.status h3 { margin-bottom: 16px; }
-
-.status-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
-}
-
-.status-card {
-  display: flex; align-items: center; gap: 8px;
-  padding: 12px 16px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 8px;
-  font-size: 14px;
-}
-
-.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.done .dot { background: var(--accent-green); }
-.in-progress .dot { background: var(--accent); animation: pulse 1.5s infinite; }
-.pending .dot { background: var(--text-dim); }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
+.hero h2 { font-size: 28px; margin-bottom: 12px; }
+.bench-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.bench-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center; }
+.bench-time { font-size: 24px; font-weight: 700; color: var(--accent-green); font-family: monospace; }
+.bench-op { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.feature-card h4 { font-size: 14px; margin-bottom: 6px; }
+.feature-card p { font-size: 13px; color: var(--text-dim); }
+.code-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow-x: auto; }
+.code-block code { font-family: monospace; font-size: 13px; line-height: 1.7; }
 </style>
