@@ -1,8 +1,6 @@
 use geo_core::types::*;
 use std::f64::consts::PI;
 
-const EARTH_RADIUS: f64 = 6_378_137.0;
-
 pub fn hex_grid(bbox: &BBox, cell_side: f64, units: Units) -> Vec<Polygon> {
     let cell_m = match units {
         Units::Meters => cell_side,
