@@ -1,0 +1,20 @@
+[package]
+name = "geo-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+geo-core = { path = "../geo-core" }
+geo-algo = { path = "../geo-algo" }
+geo-bool = { path = "../geo-bool" }
+geo-set = { path = "../geo-set" }
+geo-index = { path = "../geo-index" }
+geo-grid = { path = "../geo-grid" }
+wasm-bindgen.workspace = true
+console_error_panic_hook.workspace = true
+wee_alloc.workspace = true

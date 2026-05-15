@@ -1,0 +1,10 @@
+[package]
+name = "geo-bool"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+geo-core = { path = "../geo-core" }
+geo = "0.28"
+geo-types = "0.7"

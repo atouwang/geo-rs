@@ -1,0 +1,36 @@
+[workspace]
+members = [
+    "crates/geo-core",
+    "crates/geo-algo",
+    "crates/geo-bool",
+    "crates/geo-set",
+    "crates/geo-index",
+    "crates/geo-grid",
+    "crates/geo-wasm",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/geo-rs/geo-rs"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+geo = "0.28"
+geo-types = "0.7"
+geojson = "1"
+rstar = "0.12"
+kdbush = "0.2"
+flatbuffers = "24"
+wasm-bindgen = "0.2"
+console_error_panic_hook = "0.1"
+wee_alloc = "0.4"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true

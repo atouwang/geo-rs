@@ -1,0 +1,33 @@
+# Rust
+target/
+**/*.rs.bk
+*.pdb
+
+# TypeScript / JavaScript
+node_modules/
+dist/
+*.tsbuildinfo
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# WASM
+*.wasm
+pkg/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# FlatBuffers generated
+**/fbs_schema.rs
