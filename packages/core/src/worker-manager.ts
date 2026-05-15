@@ -12,9 +12,11 @@ export class WorkerManager {
   private ready = false
   private readyPromise: Promise<void>
   private sharedMode: boolean
+  private memoryLimit?: number
 
-  constructor(options?: { workerUrl?: string | URL; canvas?: HTMLCanvasElement; shared?: boolean }) {
+  constructor(options?: { workerUrl?: string | URL; canvas?: HTMLCanvasElement; shared?: boolean; memoryLimit?: number }) {
     this.sharedMode = options?.shared ?? false
+    this.memoryLimit = options?.memoryLimit
     const url = options?.workerUrl ?? new URL('./worker/engine.worker.ts', import.meta.url)
     this.workerUrl = url
 
@@ -34,6 +36,12 @@ export class WorkerManager {
     this.readyPromise = this.waitForReady()
   }
 
+  private sendInit(): void {
+    const initMsg: Record<string, unknown> = { type: 'init' }
+    if (this.memoryLimit) initMsg.memoryLimit = this.memoryLimit
+    this.postMessage(initMsg)
+  }
+
   private waitForReady(): Promise<void> {
     return new Promise((resolve, reject) => {
       const handler = (e: MessageEvent) => {
@@ -45,10 +53,10 @@ export class WorkerManager {
         }
       }
       ;(this.worker as any).addEventListener('message', handler)
-      // Timeout after 10s
       setTimeout(() => {
         if (!this.ready) reject(new Error('WASM engine initialization timed out'))
       }, 10000)
+      this.sendInit()
     })
   }
 

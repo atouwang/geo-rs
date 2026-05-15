@@ -3,7 +3,7 @@ use geo_core::types::Geometry;
 use std::collections::HashMap;
 
 const MAX_SLOTS: usize = 16384;
-const MAX_MEMORY: u64 = 256 * 1024 * 1024;
+const DEFAULT_MAX_MEMORY: u64 = 256 * 1024 * 1024;
 
 #[derive(Debug)]
 struct Slot {
@@ -18,16 +18,18 @@ pub struct MemoryArena {
     total_allocated: u64,
     handle_counter: u64,
     dedup: HashMap<u64, u64>,
+    max_memory: u64,
 }
 
 impl MemoryArena {
-    pub fn new() -> Self {
+    pub fn new(max_memory: Option<u64>) -> Self {
         Self {
             slots: Vec::with_capacity(256),
             free_list: Vec::new(),
             total_allocated: 0,
             handle_counter: 0,
             dedup: HashMap::new(),
+            max_memory: max_memory.unwrap_or(DEFAULT_MAX_MEMORY),
         }
     }
 
@@ -55,8 +57,8 @@ impl MemoryArena {
         }
 
         let size = estimate_size(&geom);
-        if self.total_allocated + size > MAX_MEMORY {
-            return Err(GeoError::MemoryLimitExceeded { requested: size, available: MAX_MEMORY - self.total_allocated });
+        if self.total_allocated + size > self.max_memory {
+            return Err(GeoError::MemoryLimitExceeded { requested: size, available: self.max_memory - self.total_allocated });
         }
         if self.slots.len() >= MAX_SLOTS && self.free_list.is_empty() {
             return Err(GeoError::MemoryLimitExceeded { requested: 0, available: 0 });
@@ -109,7 +111,7 @@ impl MemoryArena {
     pub fn stats(&self) -> ArenaStats {
         let active = self.slots.iter().filter(|s| s.is_some()).count();
         let refs: u32 = self.slots.iter().filter_map(|s| s.as_ref().map(|s| s.refcount)).sum();
-        ArenaStats { active_geometries: active, total_references: refs, total_allocated: self.total_allocated, max_memory: MAX_MEMORY }
+        ArenaStats { active_geometries: active, total_references: refs, total_allocated: self.total_allocated, max_memory: self.max_memory }
     }
 }
 
@@ -151,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_store_and_get() {
-        let mut arena = MemoryArena::new();
+        let mut arena = MemoryArena::new(None);
         let g = Geometry::Point(Point { x: 1.0, y: 2.0 });
         let h = arena.store(g.clone()).unwrap();
         assert!(h > 0);
@@ -160,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_remove_reuses_slot() {
-        let mut arena = MemoryArena::new();
+        let mut arena = MemoryArena::new(None);
         let h1 = arena.store(Geometry::Point(Point { x: 1.0, y: 2.0 })).unwrap();
         arena.remove(h1).unwrap();
         assert!(arena.get(h1).is_err()); // slot freed
@@ -170,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_dedup() {
-        let mut arena = MemoryArena::new();
+        let mut arena = MemoryArena::new(None);
         let g = Geometry::Point(Point { x: 1.0, y: 2.0 });
         let h1 = arena.store(g.clone()).unwrap();
         let h2 = arena.store(g).unwrap();
@@ -185,11 +187,11 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_not_found() { assert!(MemoryArena::new().get(999).is_err()); }
+    fn test_handle_not_found() { assert!(MemoryArena::new(None).get(999).is_err()); }
 
     #[test]
     fn test_clear() {
-        let mut arena = MemoryArena::new();
+        let mut arena = MemoryArena::new(None);
         arena.store(Geometry::Point(Point { x: 1.0, y: 2.0 })).unwrap();
         arena.clear();
         assert_eq!(arena.stats().active_geometries, 0);

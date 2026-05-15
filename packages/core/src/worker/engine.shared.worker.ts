@@ -3,11 +3,19 @@ export {}
 let engine: any = null
 const ports = new Set<MessagePort>()
 
-async function init() {
+let wasmModule: any = null
+
+async function loadWasm() {
+  if (wasmModule) return wasmModule
+  wasmModule = await import('../../../../crates/geo-wasm/pkg/geo_wasm')
+  await wasmModule.init()
+  return wasmModule
+}
+
+async function createEngine(memoryLimit?: number) {
   try {
-    const wasm = await import('../../../../crates/geo-wasm/pkg/geo_wasm')
-    await wasm.init()
-    engine = new wasm.Engine()
+    const w = await loadWasm()
+    engine = new w.Engine(memoryLimit ?? undefined)
     for (const port of ports) {
       port.postMessage({ type: 'ready' })
     }
@@ -26,7 +34,15 @@ async function init() {
   ports.add(port)
 
   port.onmessage = (ev: MessageEvent) => {
-    const { id, method, args } = ev.data
+    const { id, method, args, type, memoryLimit } = ev.data
+
+    if (type === 'init') {
+      createEngine(memoryLimit).catch((err: Error) => {
+        port.postMessage({ type: 'error', message: err.message })
+      })
+      return
+    }
+
     if (!engine) {
       port.postMessage({ id, ok: false, error: 'Engine not initialized' })
       return
@@ -44,6 +60,5 @@ async function init() {
     }
   }
 
-  if (!engine) init()
-  else port.postMessage({ type: 'ready' })
+  port.postMessage({ type: 'awaiting_init' })
 }

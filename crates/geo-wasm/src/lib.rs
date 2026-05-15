@@ -20,8 +20,8 @@ pub struct Engine {
 #[wasm_bindgen]
 impl Engine {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self { inner: WasmEngine::new() }
+    pub fn new(max_memory: Option<u64>) -> Self {
+        Self { inner: WasmEngine::new(max_memory) }
     }
 
     pub fn load(&mut self, data: &[u8]) -> Result<u64, JsValue> {

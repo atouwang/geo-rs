@@ -31,6 +31,7 @@ export class GeoEngine {
       workerUrl: config?.workerUrl,
       canvas: config?.canvas,
       shared: config?.shared,
+      memoryLimit: config?.memoryLimit,
     })
     await wm.ensureReady()
     return new GeoEngine(wm)

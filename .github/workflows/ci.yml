@@ -24,6 +24,8 @@ jobs:
         run: cargo test --workspace --exclude geo-wasm
       - name: Test (geo-wasm)
         run: cargo test -p geo-wasm
+      - name: Build docs
+        run: cargo doc --workspace --no-deps --document-private-items
 
   wasm:
     name: WASM build

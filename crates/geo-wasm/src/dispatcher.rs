@@ -26,7 +26,9 @@ pub struct WasmEngine {
 }
 
 impl WasmEngine {
-    pub fn new() -> Self { Self { arena: MemoryArena::new() } }
+    pub fn new(max_memory: Option<u64>) -> Self {
+        Self { arena: MemoryArena::new(max_memory) }
+    }
 
     pub fn load_bytes(&mut self, data: &[u8]) -> Result<u64, String> {
         let geom = geo_core::convert::from_msgpack(data).map_err(|e| e.to_string())?;
@@ -221,45 +223,45 @@ mod tests {
     fn encode(g: &Geometry) -> Vec<u8> { geo_core::convert::to_msgpack(g).unwrap() }
 
     #[test] fn test_load_read() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&pt_geom(10.0, 20.0))).unwrap();
         let bytes = e.read_bytes(h).unwrap();
         let geom: Geometry = rmp_serde::from_slice(&bytes).unwrap();
         assert!(matches!(geom, Geometry::Point(_)));
     }
     #[test] fn test_area() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&square_geom())).unwrap();
         assert!(e.execute_measure(OP_AREA, h).unwrap() > 0.0);
     }
     #[test] fn test_contains() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let hp = e.load_bytes(&encode(&square_geom())).unwrap();
         let ht = e.load_bytes(&encode(&pt_geom(0.5, 0.5))).unwrap();
         assert!(e.execute_bool(OP_CONTAINS, hp, ht).unwrap());
     }
     #[test] fn test_buffer() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&square_geom())).unwrap();
         let hb = e.execute_unary(OP_BUFFER, h, 0.1).unwrap();
         let _bytes = e.read_bytes(hb).unwrap();
     }
     #[test] fn test_union() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let h1 = e.load_bytes(&encode(&square_geom())).unwrap();
         let h2 = e.load_bytes(&encode(&square_geom())).unwrap();
         let h3 = e.execute_binary(OP_UNION, h1, h2).unwrap();
         let _bytes = e.read_bytes(h3).unwrap();
     }
     #[test] fn test_free() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&pt_geom(1.0, 2.0))).unwrap();
         assert!(e.free(h).is_ok());
         assert!(e.read_bytes(h).is_err());
     }
 
     #[test] fn test_length() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let line = Geometry::LineString(LineString {
             coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 3.0, y: 4.0 }],
         });
@@ -269,7 +271,7 @@ mod tests {
     }
 
     #[test] fn test_simplify() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let line = Geometry::LineString(LineString {
             coords: (0..50).map(|i| Point { x: i as f64, y: 0.0 }).collect(),
         });
@@ -279,7 +281,7 @@ mod tests {
     }
 
     #[test] fn test_crosses_via_dispatcher() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let line = Geometry::LineString(LineString {
             coords: vec![Point { x: -1.0, y: 0.5 }, Point { x: 2.0, y: 0.5 }],
         });
@@ -289,7 +291,7 @@ mod tests {
     }
 
     #[test] fn test_points_within() {
-        let mut e = WasmEngine::new();
+        let mut e = WasmEngine::new(None);
         let pts = Geometry::MultiPoint(MultiPoint {
             points: vec![
                 Point { x: 0.5, y: 0.5 },
