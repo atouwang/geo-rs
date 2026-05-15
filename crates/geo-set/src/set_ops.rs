@@ -48,3 +48,44 @@ pub fn difference(a: &Geometry, b: &Geometry) -> Result<Geometry, GeoError> {
 pub fn xor(a: &Geometry, b: &Geometry) -> Result<Geometry, GeoError> {
     Ok(mp_to_ours(&to_geo_mp(a)?.xor(&to_geo_mp(b)?)))
 }
+
+pub fn dissolve(geoms: &[Geometry]) -> Result<Geometry, GeoError> {
+    if geoms.is_empty() {
+        return Err(GeoError::InvalidGeometry("empty input".into()));
+    }
+    let mut result = to_geo_mp(&geoms[0])?;
+    for geom in &geoms[1..] {
+        result = result.union(&to_geo_mp(geom)?);
+    }
+    Ok(mp_to_ours(&result))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn square() -> Geometry {
+        Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
+                    Point { x: 1.0, y: 1.0 }, Point { x: 0.0, y: 1.0 },
+                    Point { x: 0.0, y: 0.0 },
+                ],
+            },
+            interiors: vec![],
+        })
+    }
+
+    #[test]
+    fn test_union_basic() {
+        let result = union(&square(), &square()).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+
+    #[test]
+    fn test_dissolve_basic() {
+        let result = dissolve(&[square(), square()]).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+}

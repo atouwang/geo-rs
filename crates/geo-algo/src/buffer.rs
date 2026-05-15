@@ -36,3 +36,27 @@ fn geo_mp_to_ours(mp: &geo_types::MultiPolygon) -> Geometry {
         }).collect(),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn square() -> Geometry {
+        Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
+                    Point { x: 1.0, y: 1.0 }, Point { x: 0.0, y: 1.0 },
+                    Point { x: 0.0, y: 0.0 },
+                ],
+            },
+            interiors: vec![],
+        })
+    }
+
+    #[test]
+    fn test_buffer_square() {
+        let result = buffer(&square(), 0.1, Units::Meters).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+}
