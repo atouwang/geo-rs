@@ -52,3 +52,17 @@ jobs:
       - run: pnpm install
       - name: Type check
         run: pnpm typecheck
+
+  bench:
+    name: Benchmarks (regression check)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run benchmarks
+        run: cargo bench --bench core_ops 2>&1 | tee bench_output.txt
+      - name: Compare against baseline
+        run: node .github/scripts/bench-compare.mjs < bench_output.txt
+        continue-on-error: true

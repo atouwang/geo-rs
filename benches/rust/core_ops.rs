@@ -6,6 +6,7 @@ fn load_sample_polygon() -> Geometry {
     from_geojson(r#"{"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}"#).unwrap()
 }
 
+#[allow(dead_code)]
 fn load_sample_points(count: usize) -> Geometry {
     let points: Vec<Point> = (0..count).map(|i| {
         let angle = (i as f64) * 0.1;

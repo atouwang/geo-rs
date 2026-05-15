@@ -1,0 +1,10 @@
+{
+  "area_simple": { "median_ns": 66.2 },
+  "centroid_simple": { "median_ns": 344.8 },
+  "buffer_simple": { "median_ns": 1486.5 },
+  "simplify_1000pts": { "median_ns": 68005 },
+  "contains_point": { "median_ns": 3087.7 },
+  "union_two_squares": { "median_ns": 9373.2 },
+  "rtree_search_10k": { "median_ns": 39.6 },
+  "parse_geojson": { "median_ns": 758.4 }
+}
