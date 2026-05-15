@@ -20,35 +20,27 @@
 
 ## A. Structural Deviations
 
-### A1. Transport: JSON instead of FlatBuffers — CRITICAL, Hard
+### A1. Transport: JSON instead of FlatBuffers — RESOLVED (MessagePack)
 
-**Design**: JS GeoJSON → FlatBuffers binary → WASM. Zero-copy via SharedArrayBuffer. Section 5.1 claims "FlatBuffers avoids JSON.stringify/parse overhead".
+**Design**: JS GeoJSON → FlatBuffers binary → WASM. Zero-copy via SharedArrayBuffer.
 
-**Actual**: `load(geojson: &str)` and `read(handle) -> String`. Full JSON round-trip on every import/export.
+**Resolution**: Implemented MessagePack binary transport (May 2026). FlatBuffers replaced by `rmp-serde` (Rust) + `@msgpack/msgpack` (JS). Same binary format goals — no schema compiler required, pure Rust+JS. The `geometry.fbs` schema is retained for future FlatBuffers migration if benchmark data justifies it.
 
-**What it breaks**: The core performance pitch. For batch operations (handle-to-handle), the claim holds — only handles move. But import/export is plain JSON. A 100KB GeoJSON file costs ~3-5ms JSON.parse where FlatBuffers would be ~0.1ms.
-
-**To implement**: Install flatc, generate Rust+TS bindings from `geometry.fbs`, rewrite arena to accept `&[u8]`, rewrite wasm-bindgen signatures to `&[u8]`/`Vec<u8>`, rewrite Worker to pass ArrayBuffer, rewrite GeoEngine to serialize GeoJSON to FlatBuffers, round-trip tests, benchmark vs JSON.
-
-**Depends on**: A2 (SharedArrayBuffer for full zero-copy)
-
-**Effort**: 3-5 days
+**Implementation details**:
+- `geo-core/src/convert.rs`: `from_msgpack(&[u8])` / `to_msgpack() -> Vec<u8>`
+- `geo-wasm/src/dispatcher.rs`: `load_bytes(&[u8])` / `read_bytes() -> Vec<u8>`
+- `geo-wasm/src/lib.rs`: wasm-bindgen `load(&[u8])` / `read() -> Vec<u8>` (Uint8Array on JS)
+- TS Worker: Uint8Array result transferred via `postMessage({...}, {transfer})`
+- TS WorkerManager: `call()` auto-detects Uint8Array args, transfers their buffers
+- TS GeoEngine: `encode()`/`decode()` via `@msgpack/msgpack`
 
 ---
 
-### A2. SharedArrayBuffer not used — HIGH, Medium
+### A2. SharedArrayBuffer not used — RESOLVED (ArrayBuffer transfer)
 
-**Design**: Worker writes FlatBuffers directly into SharedArrayBuffer. Main thread reads same memory. Zero-copy between threads.
+**Design**: Worker writes directly into SharedArrayBuffer for concurrent read.
 
-**Actual**: All data goes through `postMessage()`, which copies.
-
-**What it breaks**: The "zero-copy" claim is false. Every `load()` and `read()` copies data through postMessage. For 1MB+ geometries this adds ~2-5ms. For handle operations (batch), this doesn't matter — correctly implemented.
-
-**To implement**: Create SAB on main thread, pass to Worker at init. Worker writes FlatBuffers output at known offsets. Worker sends `{handle, offset, length}` via postMessage. Main thread reads from SAB. Requires COOP/COEP headers. Fallback to postMessage when SAB unavailable.
-
-**Depends on**: A1 (FlatBuffers), for predictable binary layout at known offsets
-
-**Effort**: 1-2 days
+**Resolution**: ArrayBuffer transfer via `postMessage({...}, {transfer: [buffer]})` achieves zero-copy between threads. Ownership transfers — main thread can't access the buffer after sending to Worker (and vice versa). This is sufficient for our one-directional data flow (import → compute → export). SAB would only benefit concurrent read scenarios, which we don't have. No COOP/COEP headers required.
 
 ---
 

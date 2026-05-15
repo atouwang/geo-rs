@@ -1,4 +1,5 @@
 import { WorkerManager, checkWasmSupport, WasmNotSupportedError } from './worker-manager'
+import { MemoryManager } from './memory-manager'
 import { encode, decode } from '@msgpack/msgpack'
 import type { EngineConfig, GeoJSON } from './types'
 
@@ -13,6 +14,7 @@ const OP_CODES = {
 
 export class GeoEngine {
   private worker: WorkerManager
+  private memory = new MemoryManager()
   private static wasmChecked = false
 
   private constructor(worker: WorkerManager) {
@@ -32,10 +34,13 @@ export class GeoEngine {
 
   async load(geojson: GeoJSON): Promise<bigint> {
     const data = encode(geojson)
-    return (await this.call('load', [data])) as bigint
+    const handle = (await this.call('load', [data])) as bigint
+    this.memory.register(handle)
+    return handle
   }
 
   async read(handle: bigint): Promise<GeoJSON> {
+    this.memory.validate(handle)
     const bytes = (await this.call('read', [handle])) as Uint8Array
     return decode(bytes) as GeoJSON
   }
@@ -95,12 +100,19 @@ export class GeoEngine {
 
   free(...handles: bigint[]): void {
     for (const h of handles) {
+      if (!this.memory.isActive(h)) continue
+      this.memory.free(h)
       this.worker.call('free', [h]).catch(() => {})
     }
   }
 
   freeAll(): void {
     this.worker.call('free_all', []).catch(() => {})
+    this.memory.clear()
+  }
+
+  getHandleStats(): { active: number; freed: number; total: number } {
+    return this.memory.stats()
   }
 
   async stats(): Promise<{ active: number; allocated: number; max: number }> {
@@ -110,6 +122,7 @@ export class GeoEngine {
 
   destroy(): void {
     this.worker.destroy()
+    this.memory.clear()
   }
 
   private async call(method: string, args: unknown[]): Promise<unknown> {

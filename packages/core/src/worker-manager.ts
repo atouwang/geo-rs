@@ -7,13 +7,14 @@ let nextId = 0
 
 export class WorkerManager {
   private worker: Worker
+  private workerUrl: string | URL
   private pending = new Map<number, PendingRequest>()
   private ready = false
   private readyPromise: Promise<void>
 
   constructor(workerUrl?: string | URL) {
-    const url = workerUrl ?? new URL('./worker/engine.worker.ts', import.meta.url)
-    this.worker = new Worker(url, { type: 'module' })
+    this.workerUrl = workerUrl ?? new URL('./worker/engine.worker.ts', import.meta.url)
+    this.worker = new Worker(this.workerUrl, { type: 'module' })
     this.worker.onmessage = this.onMessage.bind(this)
     this.worker.onerror = this.onError.bind(this)
     this.readyPromise = this.waitForReady()
@@ -55,10 +56,42 @@ export class WorkerManager {
   }
 
   private onError(e: ErrorEvent) {
+    const msg = e.message || 'Worker error'
     for (const [, p] of this.pending) {
-      p.reject(new Error(e.message || 'Worker error'))
+      p.reject(new Error(`${msg}. WASM engine state lost — reinitialize required.`))
     }
     this.pending.clear()
+    this.ready = false
+    this.readyPromise = this.reconnect()
+  }
+
+  private async reconnect(): Promise<void> {
+    const maxDelay = 30000
+    for (let delay = 1000; delay <= maxDelay; delay *= 2) {
+      try {
+        this.worker.terminate()
+        this.worker = new Worker(this.workerUrl, { type: 'module' })
+        this.worker.onmessage = this.onMessage.bind(this)
+        this.worker.onerror = this.onError.bind(this)
+        await this.waitForReadyInternal()
+        this.ready = true
+        return
+      } catch {
+        await new Promise(r => setTimeout(r, delay))
+      }
+    }
+    throw new Error('Worker reconnect failed after max retries')
+  }
+
+  private waitForReadyInternal(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const handler = (e: MessageEvent) => {
+        if (e.data?.type === 'ready') resolve()
+        else if (e.data?.type === 'error') reject(new Error(e.data.message))
+      }
+      this.worker.addEventListener('message', handler, { once: true })
+      setTimeout(() => reject(new Error('Worker init timeout')), 10000)
+    })
   }
 
   async call(method: string, args: unknown[]): Promise<unknown> {
