@@ -160,6 +160,32 @@ mod tests {
         let d = distance(&beijing, &shanghai, Units::Kilometers);
         assert!(d > 1000.0 && d < 1200.0);
     }
+
+    #[test]
+    fn test_length() {
+        let line = Geometry::LineString(LineString {
+            coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 3.0, y: 4.0 }],
+        });
+        let l = length(&line);
+        assert!(l > 4.0 && l < 6.0);
+    }
+
+    #[test]
+    fn test_bbox() {
+        let poly = Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 10.0, y: 20.0 }, Point { x: 30.0, y: 20.0 },
+                    Point { x: 30.0, y: 40.0 }, Point { x: 10.0, y: 40.0 },
+                    Point { x: 10.0, y: 20.0 },
+                ],
+            },
+            interiors: vec![],
+        });
+        let b = bbox(&poly).unwrap();
+        assert_eq!(b.min_x, 10.0);
+        assert_eq!(b.max_y, 40.0);
+    }
 }
 
 impl From<&geo_types::Geometry> for crate::types::Geometry {

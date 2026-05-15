@@ -257,4 +257,51 @@ mod tests {
         assert!(e.free(h).is_ok());
         assert!(e.read_bytes(h).is_err());
     }
+
+    #[test] fn test_length() {
+        let mut e = WasmEngine::new();
+        let line = Geometry::LineString(LineString {
+            coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 3.0, y: 4.0 }],
+        });
+        let h = e.load_bytes(&encode(&line)).unwrap();
+        let len = e.execute_measure(OP_LENGTH, h).unwrap();
+        assert!(len > 0.0);
+    }
+
+    #[test] fn test_simplify() {
+        let mut e = WasmEngine::new();
+        let line = Geometry::LineString(LineString {
+            coords: (0..50).map(|i| Point { x: i as f64, y: 0.0 }).collect(),
+        });
+        let h = e.load_bytes(&encode(&line)).unwrap();
+        let h2 = e.execute_unary(OP_SIMPLIFY, h, 5.0).unwrap();
+        let _bytes = e.read_bytes(h2).unwrap();
+    }
+
+    #[test] fn test_crosses_via_dispatcher() {
+        let mut e = WasmEngine::new();
+        let line = Geometry::LineString(LineString {
+            coords: vec![Point { x: -1.0, y: 0.5 }, Point { x: 2.0, y: 0.5 }],
+        });
+        let hl = e.load_bytes(&encode(&line)).unwrap();
+        let hp = e.load_bytes(&encode(&square_geom())).unwrap();
+        assert!(e.execute_bool(OP_CROSSES, hl, hp).unwrap());
+    }
+
+    #[test] fn test_points_within() {
+        let mut e = WasmEngine::new();
+        let pts = Geometry::MultiPoint(MultiPoint {
+            points: vec![
+                Point { x: 0.5, y: 0.5 },
+                Point { x: 2.0, y: 2.0 },
+                Point { x: 0.2, y: 0.8 },
+            ],
+        });
+        let hp = e.load_bytes(&encode(&pts)).unwrap();
+        let sq = e.load_bytes(&encode(&square_geom())).unwrap();
+        let indices = e.points_within(hp, sq).unwrap();
+        assert_eq!(indices.len(), 2);
+        assert!(indices.contains(&0));
+        assert!(indices.contains(&2));
+    }
 }

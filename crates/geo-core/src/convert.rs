@@ -149,4 +149,24 @@ mod tests {
         let back = to_geojson(&geom).unwrap();
         assert!(back.contains("Polygon"));
     }
+
+    #[test]
+    fn test_msgpack_roundtrip() {
+        let original = r#"{"type":"Point","coordinates":[116.397,39.908]}"#;
+        let geom = from_geojson(original).unwrap();
+        let bytes = to_msgpack(&geom).unwrap();
+        let back = from_msgpack(&bytes).unwrap();
+        assert_eq!(geom, back);
+    }
+
+    #[test]
+    fn test_msgpack_polygon() {
+        let gj = r#"{"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}"#;
+        let geom = from_geojson(gj).unwrap();
+        let bytes = to_msgpack(&geom).unwrap();
+        assert!(bytes.len() > 0);
+        let back = from_msgpack(&bytes).unwrap();
+        let json = to_geojson(&back).unwrap();
+        assert!(json.contains("Polygon"));
+    }
 }
