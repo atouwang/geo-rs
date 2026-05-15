@@ -1,10 +1,6 @@
-use geo_core::types::Geometry;
+use geo_core::types::*;
 use crate::arena::MemoryArena;
-use geo_algo;
-use geo_bool;
-use geo_set;
 
-// Operation codes
 pub const OP_AREA: u8 = 0x01;
 pub const OP_LENGTH: u8 = 0x02;
 pub const OP_CENTROID: u8 = 0x03;
@@ -26,13 +22,11 @@ pub const OP_DIFFERENCE: u8 = 0x32;
 pub const OP_XOR: u8 = 0x33;
 
 pub struct WasmEngine {
-    arena: MemoryArena,
+    pub arena: MemoryArena,
 }
 
 impl WasmEngine {
-    pub fn new() -> Self {
-        Self { arena: MemoryArena::new() }
-    }
+    pub fn new() -> Self { Self { arena: MemoryArena::new() } }
 
     pub fn load_geojson(&mut self, json: &str) -> Result<u64, String> {
         let geom = geo_core::convert::from_geojson(json).map_err(|e| e.to_string())?;
@@ -44,45 +38,26 @@ impl WasmEngine {
         geo_core::convert::to_geojson(geom).map_err(|e| e.to_string())
     }
 
-    pub fn execute_unary(
-        &mut self,
-        op_code: u8,
-        handle: u64,
-        param: f64,
-    ) -> Result<u64, String> {
+    pub fn execute_unary(&mut self, op_code: u8, handle: u64, param: f64) -> Result<u64, String> {
         let geom = self.arena.get(handle).map_err(|e| e.to_string())?;
         let result = dispatch_unary(op_code, geom, param)?;
         self.arena.store(result).map_err(|e| e.to_string())
     }
 
-    pub fn execute_binary(
-        &mut self,
-        op_code: u8,
-        handle_a: u64,
-        handle_b: u64,
-    ) -> Result<u64, String> {
-        let geom_a = self.arena.get(handle_a).map_err(|e| e.to_string())?;
-        let geom_b = self.arena.get(handle_b).map_err(|e| e.to_string())?;
-        let result = dispatch_binary(op_code, geom_a, geom_b)?;
+    pub fn execute_binary(&mut self, op_code: u8, ha: u64, hb: u64) -> Result<u64, String> {
+        let ga = self.arena.get(ha).map_err(|e| e.to_string())?;
+        let gb = self.arena.get(hb).map_err(|e| e.to_string())?;
+        let result = dispatch_binary(op_code, ga, gb)?;
         self.arena.store(result).map_err(|e| e.to_string())
     }
 
-    pub fn execute_bool(
-        &self,
-        op_code: u8,
-        handle_a: u64,
-        handle_b: u64,
-    ) -> Result<bool, String> {
-        let geom_a = self.arena.get(handle_a).map_err(|e| e.to_string())?;
-        let geom_b = self.arena.get(handle_b).map_err(|e| e.to_string())?;
-        dispatch_predicate(op_code, geom_a, geom_b)
+    pub fn execute_bool(&self, op_code: u8, ha: u64, hb: u64) -> Result<bool, String> {
+        let ga = self.arena.get(ha).map_err(|e| e.to_string())?;
+        let gb = self.arena.get(hb).map_err(|e| e.to_string())?;
+        dispatch_predicate(op_code, ga, gb)
     }
 
-    pub fn execute_measure(
-        &self,
-        op_code: u8,
-        handle: u64,
-    ) -> Result<f64, String> {
+    pub fn execute_measure(&self, op_code: u8, handle: u64) -> Result<f64, String> {
         let geom = self.arena.get(handle).map_err(|e| e.to_string())?;
         dispatch_measure(op_code, geom)
     }
@@ -91,25 +66,103 @@ impl WasmEngine {
         self.arena.remove(handle).map_err(|e| e.to_string())
     }
 
-    pub fn free_all(&mut self) {
-        self.arena.clear();
-    }
+    pub fn free_all(&mut self) { self.arena.clear(); }
 
     pub fn stats_json(&self) -> String {
         let s = self.arena.stats();
-        format!(
-            r#"{{"active":{},"allocated":{},"max":{}}}"#,
-            s.active_geometries, s.total_allocated, s.max_memory
-        )
+        format!(r#"{{"active":{},"allocated":{},"max":{}}}"#,
+            s.active_geometries, s.total_allocated, s.max_memory)
+    }
+
+    pub fn points_within(&self, pts_handle: u64, poly_handle: u64) -> Result<Vec<usize>, String> {
+        let pts_geom = self.arena.get(pts_handle).map_err(|e| e.to_string())?;
+        let poly_geom = self.arena.get(poly_handle).map_err(|e| e.to_string())?;
+        let pts = match pts_geom {
+            Geometry::MultiPoint(mp) => &mp.points,
+            _ => return Err("points_within requires MultiPoint".to_string()),
+        };
+        let mut result = Vec::new();
+        for (i, pt) in pts.iter().enumerate() {
+            if geo_bool::predicates::contains(poly_geom, &Geometry::Point(*pt)) {
+                result.push(i);
+            }
+        }
+        Ok(result)
+    }
+
+    pub fn transform_coords(&mut self, handle: u64, from_cs: u8, to_cs: u8) -> Result<u64, String> {
+        let geom = self.arena.get(handle).map_err(|e| e.to_string())?;
+        let from = cs_from_u8(from_cs)?;
+        let to = cs_from_u8(to_cs)?;
+        let transformed = transform_geom(geom, from, to);
+        self.arena.store(transformed).map_err(|e| e.to_string())
+    }
+
+    pub fn voronoi_from_pts(&mut self, pts_handle: u64, bbox_json: &str) -> Result<u64, String> {
+        let pts_geom = self.arena.get(pts_handle).map_err(|e| e.to_string())?;
+        let pts = match pts_geom {
+            Geometry::MultiPoint(mp) => mp.points.clone(),
+            _ => return Err("voronoi requires MultiPoint".to_string()),
+        };
+        let bbox: geo_core::types::BBox = serde_json::from_str(bbox_json)
+            .map_err(|e| format!("Invalid bbox JSON: {}", e))?;
+        let polys = geo_grid::voronoi::voronoi(&pts, &bbox);
+        let result = Geometry::GeometryCollection(
+            polys.into_iter().map(Geometry::Polygon).collect()
+        );
+        self.arena.store(result).map_err(|e| e.to_string())
+    }
+
+    pub fn isolines_from_pts(&mut self, pts_handle: u64, values_json: &str, breaks_json: &str) -> Result<u64, String> {
+        let pts_geom = self.arena.get(pts_handle).map_err(|e| e.to_string())?;
+        let pts = match pts_geom {
+            Geometry::MultiPoint(mp) => mp.points.clone(),
+            _ => return Err("isolines requires MultiPoint".to_string()),
+        };
+        let values: Vec<f64> = serde_json::from_str(values_json)
+            .map_err(|e| format!("Invalid values JSON: {}", e))?;
+        let breaks: Vec<f64> = serde_json::from_str(breaks_json)
+            .map_err(|e| format!("Invalid breaks JSON: {}", e))?;
+        let line_strings = geo_grid::isolines::isolines(&pts, &values, &breaks);
+        let result = Geometry::MultiLineString(MultiLineString { lines: line_strings });
+        self.arena.store(result).map_err(|e| e.to_string())
+    }
+}
+
+fn cs_from_u8(cs: u8) -> Result<geo_core::types::CoordSystem, String> {
+    match cs {
+        0 => Ok(geo_core::types::CoordSystem::Wgs84),
+        1 => Ok(geo_core::types::CoordSystem::WebMercator),
+        2 => Ok(geo_core::types::CoordSystem::Cartesian),
+        _ => Err(format!("Unknown coordinate system: {}", cs)),
+    }
+}
+
+fn transform_geom(geom: &Geometry, from: geo_core::types::CoordSystem, to: geo_core::types::CoordSystem) -> Geometry {
+    use geo_core::coords::transform_coords;
+    match geom {
+        Geometry::Point(p) => Geometry::Point(transform_coords(p, from, to)),
+        Geometry::LineString(ls) => Geometry::LineString(LineString {
+            coords: ls.coords.iter().map(|p| transform_coords(p, from, to)).collect(),
+        }),
+        Geometry::Polygon(p) => Geometry::Polygon(Polygon {
+            exterior: LineString { coords: p.exterior.coords.iter().map(|pt| transform_coords(pt, from, to)).collect() },
+            interiors: p.interiors.iter().map(|ls| LineString { coords: ls.coords.iter().map(|pt| transform_coords(pt, from, to)).collect() }).collect(),
+        }),
+        Geometry::MultiLineString(mls) => Geometry::MultiLineString(MultiLineString {
+            lines: mls.lines.iter().map(|ls| LineString { coords: ls.coords.iter().map(|pt| transform_coords(pt, from, to)).collect() }).collect(),
+        }),
+        Geometry::MultiPoint(mp) => Geometry::MultiPoint(MultiPoint {
+            points: mp.points.iter().map(|p| transform_coords(p, from, to)).collect(),
+        }),
+        other => other.clone(),
     }
 }
 
 fn dispatch_unary(op: u8, geom: &Geometry, param: f64) -> Result<Geometry, String> {
     match op {
-        OP_BUFFER => geo_algo::buffer::buffer(geom, param, geo_core::types::Units::Meters)
-            .map_err(|e| e.to_string()),
-        OP_SIMPLIFY => geo_algo::simplify::simplify(geom, param)
-            .map_err(|e| e.to_string()),
+        OP_BUFFER => geo_algo::buffer::buffer(geom, param, Units::Meters).map_err(|e| e.to_string()),
+        OP_SIMPLIFY => geo_algo::simplify::simplify(geom, param).map_err(|e| e.to_string()),
         _ => Err(format!("Unknown unary op: {}", op)),
     }
 }
@@ -150,63 +203,47 @@ fn dispatch_measure(op: u8, geom: &Geometry) -> Result<f64, String> {
 mod tests {
     use super::*;
 
-    fn point_json(x: f64, y: f64) -> String {
+    fn pt(x: f64, y: f64) -> String {
         format!(r#"{{"type":"Point","coordinates":[{},{}]}}"#, x, y)
     }
-
-    fn polygon_json() -> String {
+    fn square() -> String {
         r#"{"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}"#.to_string()
     }
 
-    #[test]
-    fn test_load_and_read() {
-        let mut engine = WasmEngine::new();
-        let h = engine.load_geojson(&point_json(10.0, 20.0)).unwrap();
-        let json = engine.read_geojson(h).unwrap();
-        assert!(json.contains("10.0"));
-        assert!(json.contains("20.0"));
+    #[test] fn test_load_read() {
+        let mut e = WasmEngine::new();
+        let h = e.load_geojson(&pt(10.0, 20.0)).unwrap();
+        assert!(e.read_geojson(h).unwrap().contains("10.0"));
     }
-
-    #[test]
-    fn test_area() {
-        let mut engine = WasmEngine::new();
-        let h = engine.load_geojson(&polygon_json()).unwrap();
-        let area = engine.execute_measure(OP_AREA, h).unwrap();
-        assert!(area > 0.0);
+    #[test] fn test_area() {
+        let mut e = WasmEngine::new();
+        let h = e.load_geojson(&square()).unwrap();
+        assert!(e.execute_measure(OP_AREA, h).unwrap() > 0.0);
     }
-
-    #[test]
-    fn test_contains() {
-        let mut engine = WasmEngine::new();
-        let h_poly = engine.load_geojson(&polygon_json()).unwrap();
-        let h_pt = engine.load_geojson(&point_json(0.5, 0.5)).unwrap();
-        assert!(engine.execute_bool(OP_CONTAINS, h_poly, h_pt).unwrap());
+    #[test] fn test_contains() {
+        let mut e = WasmEngine::new();
+        let hp = e.load_geojson(&square()).unwrap();
+        let ht = e.load_geojson(&pt(0.5, 0.5)).unwrap();
+        assert!(e.execute_bool(OP_CONTAINS, hp, ht).unwrap());
     }
-
-    #[test]
-    fn test_buffer() {
-        let mut engine = WasmEngine::new();
-        let h = engine.load_geojson(&polygon_json()).unwrap();
-        let h_buf = engine.execute_unary(OP_BUFFER, h, 0.1).unwrap();
-        let json = engine.read_geojson(h_buf).unwrap();
+    #[test] fn test_buffer() {
+        let mut e = WasmEngine::new();
+        let h = e.load_geojson(&square()).unwrap();
+        let hb = e.execute_unary(OP_BUFFER, h, 0.1).unwrap();
+        let json = e.read_geojson(hb).unwrap();
         assert!(json.contains("Polygon") || json.contains("MultiPolygon"));
     }
-
-    #[test]
-    fn test_union() {
-        let mut engine = WasmEngine::new();
-        let h1 = engine.load_geojson(&polygon_json()).unwrap();
-        let h2 = engine.load_geojson(&polygon_json()).unwrap();
-        let h3 = engine.execute_binary(OP_UNION, h1, h2).unwrap();
-        let json = engine.read_geojson(h3).unwrap();
-        assert!(json.contains("Polygon") || json.contains("MultiPolygon"));
+    #[test] fn test_union() {
+        let mut e = WasmEngine::new();
+        let h1 = e.load_geojson(&square()).unwrap();
+        let h2 = e.load_geojson(&square()).unwrap();
+        let h3 = e.execute_binary(OP_UNION, h1, h2).unwrap();
+        assert!(e.read_geojson(h3).unwrap().contains("Polygon"));
     }
-
-    #[test]
-    fn test_free() {
-        let mut engine = WasmEngine::new();
-        let h = engine.load_geojson(&point_json(1.0, 2.0)).unwrap();
-        assert!(engine.free(h).is_ok());
-        assert!(engine.read_geojson(h).is_err());
+    #[test] fn test_free() {
+        let mut e = WasmEngine::new();
+        let h = e.load_geojson(&pt(1.0, 2.0)).unwrap();
+        assert!(e.free(h).is_ok());
+        assert!(e.read_geojson(h).is_err());
     }
 }

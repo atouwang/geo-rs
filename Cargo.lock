@@ -302,6 +302,7 @@ dependencies = [
  "geo-grid",
  "geo-index",
  "geo-set",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "wee_alloc",
