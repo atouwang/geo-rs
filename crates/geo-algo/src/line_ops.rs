@@ -1,7 +1,7 @@
-use geo::algorithm::line_interpolate_point::LineInterpolatePoint as _;
 use geo::algorithm::closest_point::ClosestPoint as _;
 use geo::algorithm::geodesic_bearing::GeodesicBearing as _;
 use geo::algorithm::geodesic_destination::GeodesicDestination as _;
+use geo::algorithm::line_interpolate_point::LineInterpolatePoint as _;
 use geo::Closest;
 use geo_core::types::*;
 
@@ -38,9 +38,7 @@ mod tests {
 
     #[test]
     fn test_along() {
-        let line = LineString {
-            coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 1.0 }],
-        };
+        let line = LineString { coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 1.0 }] };
         let pt = along(&line, 0.0).unwrap();
         assert!((pt.x - 0.0).abs() < 0.01);
         assert!((pt.y - 0.0).abs() < 0.01);
@@ -64,12 +62,7 @@ mod tests {
 
     #[test]
     fn test_nearest_point_on_line() {
-        let line = LineString {
-            coords: vec![
-                Point { x: 0.0, y: 0.0 },
-                Point { x: 10.0, y: 0.0 },
-            ],
-        };
+        let line = LineString { coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 10.0, y: 0.0 }] };
         let pt = Point { x: 5.0, y: 1.0 };
         let nearest = nearest_point_on_line(&line, &pt).unwrap();
         assert!((nearest.x - 5.0).abs() < 0.01);

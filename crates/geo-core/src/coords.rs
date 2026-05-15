@@ -5,22 +5,13 @@ const ORIGIN_SHIFT: f64 = 2.0 * std::f64::consts::PI * EARTH_RADIUS / 2.0;
 
 pub fn wgs84_to_web_mercator(lon: f64, lat: f64) -> Point {
     let x = lon * ORIGIN_SHIFT / 180.0;
-    let y = (std::f64::consts::FRAC_PI_4 + lat.to_radians() / 2.0)
-        .tan()
-        .ln()
-        * ORIGIN_SHIFT
-        / std::f64::consts::PI;
+    let y = (std::f64::consts::FRAC_PI_4 + lat.to_radians() / 2.0).tan().ln() * ORIGIN_SHIFT / std::f64::consts::PI;
     Point { x, y }
 }
 
 pub fn web_mercator_to_wgs84(x: f64, y: f64) -> Point {
     let lon = x * 180.0 / ORIGIN_SHIFT;
-    let lat = (std::f64::consts::PI * y / ORIGIN_SHIFT)
-        .exp()
-        .atan()
-        .to_degrees()
-        * 2.0
-        - 90.0;
+    let lat = (std::f64::consts::PI * y / ORIGIN_SHIFT).exp().atan().to_degrees() * 2.0 - 90.0;
     Point { x: lon, y: lat }
 }
 

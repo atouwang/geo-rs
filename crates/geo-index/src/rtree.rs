@@ -1,25 +1,35 @@
 use geo_core::types::*;
-use rstar::{RTree as RStarTree, AABB, RTreeObject, PointDistance};
+use rstar::{PointDistance, RTree as RStarTree, RTreeObject, AABB};
 
 #[derive(Debug, Clone)]
-struct IndexPoint { point: [f64; 2], id: u64 }
+struct IndexPoint {
+    point: [f64; 2],
+    id: u64,
+}
 
 impl RTreeObject for IndexPoint {
     type Envelope = AABB<[f64; 2]>;
-    fn envelope(&self) -> Self::Envelope { AABB::from_point(self.point) }
+    fn envelope(&self) -> Self::Envelope {
+        AABB::from_point(self.point)
+    }
 }
 
 impl PointDistance for IndexPoint {
     fn distance_2(&self, pt: &[f64; 2]) -> f64 {
-        let dx = self.point[0] - pt[0]; let dy = self.point[1] - pt[1];
+        let dx = self.point[0] - pt[0];
+        let dy = self.point[1] - pt[1];
         dx * dx + dy * dy
     }
 }
 
-pub struct RTree { tree: RStarTree<IndexPoint> }
+pub struct RTree {
+    tree: RStarTree<IndexPoint>,
+}
 
 impl RTree {
-    pub fn new() -> Self { Self { tree: RStarTree::new() } }
+    pub fn new() -> Self {
+        Self { tree: RStarTree::new() }
+    }
     pub fn insert_point(&mut self, pt: &Point, id: u64) {
         self.tree.insert(IndexPoint { point: [pt.x, pt.y], id });
     }
@@ -29,14 +39,24 @@ impl RTree {
     }
     pub fn nearest(&self, point: &Point) -> Option<(u64, f64)> {
         self.tree.nearest_neighbor(&[point.x, point.y]).map(|p| {
-            let dx = p.point[0] - point.x; let dy = p.point[1] - point.y;
+            let dx = p.point[0] - point.x;
+            let dy = p.point[1] - point.y;
             (p.id, (dx * dx + dy * dy).sqrt())
         })
     }
-    pub fn len(&self) -> usize { self.tree.size() }
+    pub fn len(&self) -> usize {
+        self.tree.size()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.tree.size() == 0
+    }
 }
 
-impl Default for RTree { fn default() -> Self { Self::new() } }
+impl Default for RTree {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,5 @@
-use geo_core::types::*;
 use crate::arena::MemoryArena;
+use geo_core::types::*;
 
 pub const OP_AREA: u8 = 0x01;
 pub const OP_LENGTH: u8 = 0x02;
@@ -68,12 +68,16 @@ impl WasmEngine {
         self.arena.remove(handle).map_err(|e| e.to_string())
     }
 
-    pub fn free_all(&mut self) { self.arena.clear(); }
+    pub fn free_all(&mut self) {
+        self.arena.clear();
+    }
 
     pub fn stats_json(&self) -> String {
         let s = self.arena.stats();
-        format!(r#"{{"active":{},"refs":{},"allocated":{},"max":{}}}"#,
-            s.active_geometries, s.total_references, s.total_allocated, s.max_memory)
+        format!(
+            r#"{{"active":{},"refs":{},"allocated":{},"max":{}}}"#,
+            s.active_geometries, s.total_references, s.total_allocated, s.max_memory
+        )
     }
 
     pub fn points_within(&self, pts_handle: u64, poly_handle: u64) -> Result<Vec<usize>, String> {
@@ -106,12 +110,10 @@ impl WasmEngine {
             Geometry::MultiPoint(mp) => mp.points.clone(),
             _ => return Err("voronoi requires MultiPoint".to_string()),
         };
-        let bbox: geo_core::types::BBox = serde_json::from_str(bbox_json)
-            .map_err(|e| format!("Invalid bbox JSON: {}", e))?;
+        let bbox: geo_core::types::BBox =
+            serde_json::from_str(bbox_json).map_err(|e| format!("Invalid bbox JSON: {}", e))?;
         let polys = geo_grid::voronoi::voronoi(&pts, &bbox);
-        let result = Geometry::GeometryCollection(
-            polys.into_iter().map(Geometry::Polygon).collect()
-        );
+        let result = Geometry::GeometryCollection(polys.into_iter().map(Geometry::Polygon).collect());
         self.arena.store(result).map_err(|e| e.to_string())
     }
 
@@ -121,10 +123,8 @@ impl WasmEngine {
             Geometry::MultiPoint(mp) => mp.points.clone(),
             _ => return Err("isolines requires MultiPoint".to_string()),
         };
-        let values: Vec<f64> = serde_json::from_str(values_json)
-            .map_err(|e| format!("Invalid values JSON: {}", e))?;
-        let breaks: Vec<f64> = serde_json::from_str(breaks_json)
-            .map_err(|e| format!("Invalid breaks JSON: {}", e))?;
+        let values: Vec<f64> = serde_json::from_str(values_json).map_err(|e| format!("Invalid values JSON: {}", e))?;
+        let breaks: Vec<f64> = serde_json::from_str(breaks_json).map_err(|e| format!("Invalid breaks JSON: {}", e))?;
         let line_strings = geo_grid::isolines::isolines(&pts, &values, &breaks);
         let result = Geometry::MultiLineString(MultiLineString { lines: line_strings });
         self.arena.store(result).map_err(|e| e.to_string())
@@ -148,11 +148,21 @@ fn transform_geom(geom: &Geometry, from: geo_core::types::CoordSystem, to: geo_c
             coords: ls.coords.iter().map(|p| transform_coords(p, from, to)).collect(),
         }),
         Geometry::Polygon(p) => Geometry::Polygon(Polygon {
-            exterior: LineString { coords: p.exterior.coords.iter().map(|pt| transform_coords(pt, from, to)).collect() },
-            interiors: p.interiors.iter().map(|ls| LineString { coords: ls.coords.iter().map(|pt| transform_coords(pt, from, to)).collect() }).collect(),
+            exterior: LineString {
+                coords: p.exterior.coords.iter().map(|pt| transform_coords(pt, from, to)).collect(),
+            },
+            interiors: p
+                .interiors
+                .iter()
+                .map(|ls| LineString { coords: ls.coords.iter().map(|pt| transform_coords(pt, from, to)).collect() })
+                .collect(),
         }),
         Geometry::MultiLineString(mls) => Geometry::MultiLineString(MultiLineString {
-            lines: mls.lines.iter().map(|ls| LineString { coords: ls.coords.iter().map(|pt| transform_coords(pt, from, to)).collect() }).collect(),
+            lines: mls
+                .lines
+                .iter()
+                .map(|ls| LineString { coords: ls.coords.iter().map(|pt| transform_coords(pt, from, to)).collect() })
+                .collect(),
         }),
         Geometry::MultiPoint(mp) => Geometry::MultiPoint(MultiPoint {
             points: mp.points.iter().map(|p| transform_coords(p, from, to)).collect(),
@@ -208,96 +218,107 @@ fn dispatch_measure(op: u8, geom: &Geometry) -> Result<f64, String> {
 mod tests {
     use super::*;
 
-    fn pt_geom(x: f64, y: f64) -> Geometry { Geometry::Point(Point { x, y }) }
+    fn pt_geom(x: f64, y: f64) -> Geometry {
+        Geometry::Point(Point { x, y })
+    }
     fn square_geom() -> Geometry {
         Geometry::Polygon(Polygon {
-            exterior: LineString { coords: vec![
-                Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
-                Point { x: 1.0, y: 1.0 }, Point { x: 0.0, y: 1.0 },
-                Point { x: 0.0, y: 0.0 },
-            ]},
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 0.0, y: 0.0 },
+                    Point { x: 1.0, y: 0.0 },
+                    Point { x: 1.0, y: 1.0 },
+                    Point { x: 0.0, y: 1.0 },
+                    Point { x: 0.0, y: 0.0 },
+                ],
+            },
             interiors: vec![],
         })
     }
 
-    fn encode(g: &Geometry) -> Vec<u8> { geo_core::convert::to_msgpack(g).unwrap() }
+    fn encode(g: &Geometry) -> Vec<u8> {
+        geo_core::convert::to_msgpack(g).unwrap()
+    }
 
-    #[test] fn test_load_read() {
+    #[test]
+    fn test_load_read() {
         let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&pt_geom(10.0, 20.0))).unwrap();
         let bytes = e.read_bytes(h).unwrap();
         let geom: Geometry = rmp_serde::from_slice(&bytes).unwrap();
         assert!(matches!(geom, Geometry::Point(_)));
     }
-    #[test] fn test_area() {
+    #[test]
+    fn test_area() {
         let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&square_geom())).unwrap();
         assert!(e.execute_measure(OP_AREA, h).unwrap() > 0.0);
     }
-    #[test] fn test_contains() {
+    #[test]
+    fn test_contains() {
         let mut e = WasmEngine::new(None);
         let hp = e.load_bytes(&encode(&square_geom())).unwrap();
         let ht = e.load_bytes(&encode(&pt_geom(0.5, 0.5))).unwrap();
         assert!(e.execute_bool(OP_CONTAINS, hp, ht).unwrap());
     }
-    #[test] fn test_buffer() {
+    #[test]
+    fn test_buffer() {
         let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&square_geom())).unwrap();
         let hb = e.execute_unary(OP_BUFFER, h, 0.1).unwrap();
         let _bytes = e.read_bytes(hb).unwrap();
     }
-    #[test] fn test_union() {
+    #[test]
+    fn test_union() {
         let mut e = WasmEngine::new(None);
         let h1 = e.load_bytes(&encode(&square_geom())).unwrap();
         let h2 = e.load_bytes(&encode(&square_geom())).unwrap();
         let h3 = e.execute_binary(OP_UNION, h1, h2).unwrap();
         let _bytes = e.read_bytes(h3).unwrap();
     }
-    #[test] fn test_free() {
+    #[test]
+    fn test_free() {
         let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&pt_geom(1.0, 2.0))).unwrap();
         assert!(e.free(h).is_ok());
         assert!(e.read_bytes(h).is_err());
     }
 
-    #[test] fn test_length() {
+    #[test]
+    fn test_length() {
         let mut e = WasmEngine::new(None);
-        let line = Geometry::LineString(LineString {
-            coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 3.0, y: 4.0 }],
-        });
+        let line =
+            Geometry::LineString(LineString { coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 3.0, y: 4.0 }] });
         let h = e.load_bytes(&encode(&line)).unwrap();
         let len = e.execute_measure(OP_LENGTH, h).unwrap();
         assert!(len > 0.0);
     }
 
-    #[test] fn test_simplify() {
+    #[test]
+    fn test_simplify() {
         let mut e = WasmEngine::new(None);
-        let line = Geometry::LineString(LineString {
-            coords: (0..50).map(|i| Point { x: i as f64, y: 0.0 }).collect(),
-        });
+        let line =
+            Geometry::LineString(LineString { coords: (0..50).map(|i| Point { x: i as f64, y: 0.0 }).collect() });
         let h = e.load_bytes(&encode(&line)).unwrap();
         let h2 = e.execute_unary(OP_SIMPLIFY, h, 5.0).unwrap();
         let _bytes = e.read_bytes(h2).unwrap();
     }
 
-    #[test] fn test_crosses_via_dispatcher() {
+    #[test]
+    fn test_crosses_via_dispatcher() {
         let mut e = WasmEngine::new(None);
-        let line = Geometry::LineString(LineString {
-            coords: vec![Point { x: -1.0, y: 0.5 }, Point { x: 2.0, y: 0.5 }],
-        });
+        let line =
+            Geometry::LineString(LineString { coords: vec![Point { x: -1.0, y: 0.5 }, Point { x: 2.0, y: 0.5 }] });
         let hl = e.load_bytes(&encode(&line)).unwrap();
         let hp = e.load_bytes(&encode(&square_geom())).unwrap();
         assert!(e.execute_bool(OP_CROSSES, hl, hp).unwrap());
     }
 
-    #[test] fn test_points_within() {
+    #[test]
+    fn test_points_within() {
         let mut e = WasmEngine::new(None);
         let pts = Geometry::MultiPoint(MultiPoint {
-            points: vec![
-                Point { x: 0.5, y: 0.5 },
-                Point { x: 2.0, y: 2.0 },
-                Point { x: 0.2, y: 0.8 },
-            ],
+            points: vec![Point { x: 0.5, y: 0.5 }, Point { x: 2.0, y: 2.0 }, Point { x: 0.2, y: 0.8 }],
         });
         let hp = e.load_bytes(&encode(&pts)).unwrap();
         let sq = e.load_bytes(&encode(&square_geom())).unwrap();

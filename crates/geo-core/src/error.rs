@@ -15,11 +15,9 @@ impl fmt::Display for GeoError {
         match self {
             GeoError::InvalidGeometry(msg) => write!(f, "Invalid geometry: {}", msg),
             GeoError::TopologyError(msg) => write!(f, "Topology error: {}", msg),
-            GeoError::MemoryLimitExceeded { requested, available } => write!(
-                f,
-                "Memory limit exceeded: requested {} bytes, {} bytes available",
-                requested, available
-            ),
+            GeoError::MemoryLimitExceeded { requested, available } => {
+                write!(f, "Memory limit exceeded: requested {} bytes, {} bytes available", requested, available)
+            }
             GeoError::OperationNotSupported { op, reason } => {
                 write!(f, "Operation '{}' not supported: {}", op, reason)
             }

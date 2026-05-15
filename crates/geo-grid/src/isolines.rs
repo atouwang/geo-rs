@@ -12,37 +12,53 @@ pub fn isolines(points: &[Point], values: &[f64], breaks: &[f64]) -> Vec<LineStr
     for &break_val in breaks {
         let mut segments: Vec<(Point, Point)> = Vec::new();
         for &(i, j, k) in &triangles {
-            let vi = values[i]; let vj = values[j]; let vk = values[k];
+            let vi = values[i];
+            let vj = values[j];
+            let vk = values[k];
             let above = |v: f64| v >= break_val;
-            let ai = above(vi); let aj = above(vj); let ak = above(vk);
+            let ai = above(vi);
+            let aj = above(vj);
+            let ak = above(vk);
             let count = ai as u8 + aj as u8 + ak as u8;
 
             match count {
                 1 => {
                     // One vertex above: segment between the two crossing edges
                     let (p1, p2) = if ai {
-                        (interpolate(&points[i], vi, &points[j], vj, break_val),
-                         interpolate(&points[i], vi, &points[k], vk, break_val))
+                        (
+                            interpolate(&points[i], vi, &points[j], vj, break_val),
+                            interpolate(&points[i], vi, &points[k], vk, break_val),
+                        )
                     } else if aj {
-                        (interpolate(&points[j], vj, &points[i], vi, break_val),
-                         interpolate(&points[j], vj, &points[k], vk, break_val))
+                        (
+                            interpolate(&points[j], vj, &points[i], vi, break_val),
+                            interpolate(&points[j], vj, &points[k], vk, break_val),
+                        )
                     } else {
-                        (interpolate(&points[k], vk, &points[i], vi, break_val),
-                         interpolate(&points[k], vk, &points[j], vj, break_val))
+                        (
+                            interpolate(&points[k], vk, &points[i], vi, break_val),
+                            interpolate(&points[k], vk, &points[j], vj, break_val),
+                        )
                     };
                     segments.push((p1, p2));
                 }
                 2 => {
                     // Two vertices above: segment between the two crossing edges
                     let (p1, p2) = if !ai {
-                        (interpolate(&points[i], vi, &points[j], vj, break_val),
-                         interpolate(&points[i], vi, &points[k], vk, break_val))
+                        (
+                            interpolate(&points[i], vi, &points[j], vj, break_val),
+                            interpolate(&points[i], vi, &points[k], vk, break_val),
+                        )
                     } else if !aj {
-                        (interpolate(&points[j], vj, &points[i], vi, break_val),
-                         interpolate(&points[j], vj, &points[k], vk, break_val))
+                        (
+                            interpolate(&points[j], vj, &points[i], vi, break_val),
+                            interpolate(&points[j], vj, &points[k], vk, break_val),
+                        )
                     } else {
-                        (interpolate(&points[k], vk, &points[i], vi, break_val),
-                         interpolate(&points[k], vk, &points[j], vj, break_val))
+                        (
+                            interpolate(&points[k], vk, &points[i], vi, break_val),
+                            interpolate(&points[k], vk, &points[j], vj, break_val),
+                        )
                     };
                     segments.push((p1, p2));
                 }
@@ -64,15 +80,14 @@ fn interpolate(p1: &Point, v1: f64, p2: &Point, v2: f64, target: f64) -> Point {
         return Point { x: (p1.x + p2.x) / 2.0, y: (p1.y + p2.y) / 2.0 };
     }
     let t = (target - v1) / (v2 - v1);
-    Point {
-        x: p1.x + t * (p2.x - p1.x),
-        y: p1.y + t * (p2.y - p1.y),
-    }
+    Point { x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y) }
 }
 
 fn build_triangulation(points: &[Point]) -> Vec<(usize, usize, usize)> {
     // Simple Delaunay-like triangulation using ear clipping
-    if points.len() < 3 { return vec![]; }
+    if points.len() < 3 {
+        return vec![];
+    }
     let mut triangles = Vec::new();
     // Build a simple fan triangulation from centroid
     let cx: f64 = points.iter().map(|p| p.x).sum::<f64>() / points.len() as f64;
@@ -80,7 +95,8 @@ fn build_triangulation(points: &[Point]) -> Vec<(usize, usize, usize)> {
     let mut indices: Vec<usize> = (0..points.len()).collect();
     // Sort by angle around centroid
     indices.sort_by(|&a, &b| {
-        (points[a].y - cy).atan2(points[a].x - cx)
+        (points[a].y - cy)
+            .atan2(points[a].x - cx)
             .partial_cmp(&(points[b].y - cy).atan2(points[b].x - cx))
             .unwrap_or(std::cmp::Ordering::Equal)
     });
@@ -98,8 +114,10 @@ mod tests {
     fn test_isolines_simple() {
         // 4 corner points forming a square with a central peak
         let pts = vec![
-            Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
-            Point { x: 1.0, y: 1.0 }, Point { x: 0.0, y: 1.0 },
+            Point { x: 0.0, y: 0.0 },
+            Point { x: 1.0, y: 0.0 },
+            Point { x: 1.0, y: 1.0 },
+            Point { x: 0.0, y: 1.0 },
         ];
         let values = vec![0.0, 0.0, 1.0, 0.0];
         let breaks = vec![0.5];
@@ -123,11 +141,7 @@ mod tests {
     #[test]
     fn test_isolines_single_break() {
         // Triangle with values on each vertex
-        let pts = vec![
-            Point { x: 0.0, y: 0.0 },
-            Point { x: 1.0, y: 0.0 },
-            Point { x: 0.5, y: 1.0 },
-        ];
+        let pts = vec![Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 }, Point { x: 0.5, y: 1.0 }];
         let values = vec![0.0, 0.0, 1.0];
         let breaks = vec![0.5];
         let lines = isolines(&pts, &values, &breaks);

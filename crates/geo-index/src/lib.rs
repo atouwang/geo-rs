@@ -1,2 +1,2 @@
-pub mod rtree;
 pub mod kdtree;
+pub mod rtree;

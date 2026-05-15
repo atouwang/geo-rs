@@ -58,7 +58,10 @@ impl MemoryArena {
 
         let size = estimate_size(&geom);
         if self.total_allocated + size > self.max_memory {
-            return Err(GeoError::MemoryLimitExceeded { requested: size, available: self.max_memory - self.total_allocated });
+            return Err(GeoError::MemoryLimitExceeded {
+                requested: size,
+                available: self.max_memory - self.total_allocated,
+            });
         }
         if self.slots.len() >= MAX_SLOTS && self.free_list.is_empty() {
             return Err(GeoError::MemoryLimitExceeded { requested: 0, available: 0 });
@@ -88,7 +91,9 @@ impl MemoryArena {
         match self.slots.get_mut(idx).and_then(|s| s.as_mut()) {
             Some(slot) => {
                 slot.refcount -= 1;
-                if slot.refcount > 0 { return Ok(()); }
+                if slot.refcount > 0 {
+                    return Ok(());
+                }
                 let hash = Self::hash_geom(&slot.geom);
                 self.dedup.remove(&hash);
                 self.total_allocated = self.total_allocated.saturating_sub(slot.size_estimate);
@@ -111,7 +116,12 @@ impl MemoryArena {
     pub fn stats(&self) -> ArenaStats {
         let active = self.slots.iter().filter(|s| s.is_some()).count();
         let refs: u32 = self.slots.iter().filter_map(|s| s.as_ref().map(|s| s.refcount)).sum();
-        ArenaStats { active_geometries: active, total_references: refs, total_allocated: self.total_allocated, max_memory: self.max_memory }
+        ArenaStats {
+            active_geometries: active,
+            total_references: refs,
+            total_allocated: self.total_allocated,
+            max_memory: self.max_memory,
+        }
     }
 }
 
@@ -123,7 +133,9 @@ pub struct ArenaStats {
     pub max_memory: u64,
 }
 
-fn handle_to_idx(handle: u64) -> usize { (handle - 1) as usize }
+fn handle_to_idx(handle: u64) -> usize {
+    (handle - 1) as usize
+}
 
 fn estimate_size(geom: &Geometry) -> u64 {
     use Geometry::*;
@@ -137,11 +149,17 @@ fn estimate_size(geom: &Geometry) -> u64 {
             let i: u64 = p.interiors.iter().map(|r| (r.coords.len() as u64) * 16).sum();
             64 + e + i
         }
-        MultiPolygon(mp) => 32 + mp.polygons.iter().map(|p| {
-            let e = (p.exterior.coords.len() as u64) * 16;
-            let i: u64 = p.interiors.iter().map(|r| (r.coords.len() as u64) * 16).sum();
-            64 + e + i
-        }).sum::<u64>(),
+        MultiPolygon(mp) => {
+            32 + mp
+                .polygons
+                .iter()
+                .map(|p| {
+                    let e = (p.exterior.coords.len() as u64) * 16;
+                    let i: u64 = p.interiors.iter().map(|r| (r.coords.len() as u64) * 16).sum();
+                    64 + e + i
+                })
+                .sum::<u64>()
+        }
         GeometryCollection(gc) => 32 + gc.iter().map(|g| estimate_size(g)).sum::<u64>(),
     }
 }
@@ -187,7 +205,9 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_not_found() { assert!(MemoryArena::new(None).get(999).is_err()); }
+    fn test_handle_not_found() {
+        assert!(MemoryArena::new(None).get(999).is_err());
+    }
 
     #[test]
     fn test_clear() {

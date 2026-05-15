@@ -49,8 +49,7 @@ impl Engine {
     }
 
     pub fn points_within(&self, pts_handle: u64, poly_handle: u64) -> Result<String, JsValue> {
-        let indices = self.inner.points_within(pts_handle, poly_handle)
-            .map_err(|e| JsValue::from_str(&e))?;
+        let indices = self.inner.points_within(pts_handle, poly_handle).map_err(|e| JsValue::from_str(&e))?;
         Ok(serde_json::to_string(&indices).unwrap_or_else(|_| "[]".into()))
     }
 
@@ -70,27 +69,88 @@ impl Engine {
         self.inner.free(handle).map_err(|e| JsValue::from_str(&e))
     }
 
-    pub fn free_all(&mut self) { self.inner.free_all(); }
+    pub fn free_all(&mut self) {
+        self.inner.free_all();
+    }
 
-    pub fn stats(&self) -> String { self.inner.stats_json() }
+    pub fn stats(&self) -> String {
+        self.inner.stats_json()
+    }
 }
 
-#[wasm_bindgen] pub fn op_area() -> u8 { dispatcher::OP_AREA }
-#[wasm_bindgen] pub fn op_length() -> u8 { dispatcher::OP_LENGTH }
-#[wasm_bindgen] pub fn op_centroid() -> u8 { dispatcher::OP_CENTROID }
-#[wasm_bindgen] pub fn op_bbox() -> u8 { dispatcher::OP_BBOX }
-#[wasm_bindgen] pub fn op_buffer() -> u8 { dispatcher::OP_BUFFER }
-#[wasm_bindgen] pub fn op_simplify() -> u8 { dispatcher::OP_SIMPLIFY }
-#[wasm_bindgen] pub fn op_convex_hull() -> u8 { dispatcher::OP_CONVEX_HULL }
-#[wasm_bindgen] pub fn op_contains() -> u8 { dispatcher::OP_CONTAINS }
-#[wasm_bindgen] pub fn op_intersects() -> u8 { dispatcher::OP_INTERSECTS }
-#[wasm_bindgen] pub fn op_crosses() -> u8 { dispatcher::OP_CROSSES }
-#[wasm_bindgen] pub fn op_within() -> u8 { dispatcher::OP_WITHIN }
-#[wasm_bindgen] pub fn op_disjoint() -> u8 { dispatcher::OP_DISJOINT }
-#[wasm_bindgen] pub fn op_overlaps() -> u8 { dispatcher::OP_OVERLAPS }
-#[wasm_bindgen] pub fn op_touches() -> u8 { dispatcher::OP_TOUCHES }
-#[wasm_bindgen] pub fn op_equals() -> u8 { dispatcher::OP_EQUALS }
-#[wasm_bindgen] pub fn op_union() -> u8 { dispatcher::OP_UNION }
-#[wasm_bindgen] pub fn op_intersect() -> u8 { dispatcher::OP_INTERSECT }
-#[wasm_bindgen] pub fn op_difference() -> u8 { dispatcher::OP_DIFFERENCE }
-#[wasm_bindgen] pub fn op_xor() -> u8 { dispatcher::OP_XOR }
+#[wasm_bindgen]
+pub fn op_area() -> u8 {
+    dispatcher::OP_AREA
+}
+#[wasm_bindgen]
+pub fn op_length() -> u8 {
+    dispatcher::OP_LENGTH
+}
+#[wasm_bindgen]
+pub fn op_centroid() -> u8 {
+    dispatcher::OP_CENTROID
+}
+#[wasm_bindgen]
+pub fn op_bbox() -> u8 {
+    dispatcher::OP_BBOX
+}
+#[wasm_bindgen]
+pub fn op_buffer() -> u8 {
+    dispatcher::OP_BUFFER
+}
+#[wasm_bindgen]
+pub fn op_simplify() -> u8 {
+    dispatcher::OP_SIMPLIFY
+}
+#[wasm_bindgen]
+pub fn op_convex_hull() -> u8 {
+    dispatcher::OP_CONVEX_HULL
+}
+#[wasm_bindgen]
+pub fn op_contains() -> u8 {
+    dispatcher::OP_CONTAINS
+}
+#[wasm_bindgen]
+pub fn op_intersects() -> u8 {
+    dispatcher::OP_INTERSECTS
+}
+#[wasm_bindgen]
+pub fn op_crosses() -> u8 {
+    dispatcher::OP_CROSSES
+}
+#[wasm_bindgen]
+pub fn op_within() -> u8 {
+    dispatcher::OP_WITHIN
+}
+#[wasm_bindgen]
+pub fn op_disjoint() -> u8 {
+    dispatcher::OP_DISJOINT
+}
+#[wasm_bindgen]
+pub fn op_overlaps() -> u8 {
+    dispatcher::OP_OVERLAPS
+}
+#[wasm_bindgen]
+pub fn op_touches() -> u8 {
+    dispatcher::OP_TOUCHES
+}
+#[wasm_bindgen]
+pub fn op_equals() -> u8 {
+    dispatcher::OP_EQUALS
+}
+#[wasm_bindgen]
+pub fn op_union() -> u8 {
+    dispatcher::OP_UNION
+}
+#[wasm_bindgen]
+pub fn op_intersect() -> u8 {
+    dispatcher::OP_INTERSECT
+}
+#[wasm_bindgen]
+pub fn op_difference() -> u8 {
+    dispatcher::OP_DIFFERENCE
+}
+#[wasm_bindgen]
+pub fn op_xor() -> u8 {
+    dispatcher::OP_XOR
+}
