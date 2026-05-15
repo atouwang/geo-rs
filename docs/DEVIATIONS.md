@@ -146,24 +146,22 @@ Design mentions both. Neither implemented.
 
 ---
 
-## Summary
+## Summary (Updated May 2026)
 
-### Must Fix (before public release)
+### Resolved
+
+| # | Gap | Resolution |
+|---|---|---|
+| A1 | FlatBuffers transport | MessagePack + ArrayBuffer transfer implemented |
+| A2 | SharedArrayBuffer | ArrayBuffer transfer achieves zero-copy; SAB not needed |
+| B1 | memory-manager.ts | Implemented + integrated into GeoEngine |
+| C1 | Worker error recovery | Exponential backoff reconnect implemented |
+
+### Remaining (before v1.0)
 
 | # | Gap | Effort |
 |---|---|---|
-| A1 | FlatBuffers transport | 3-5d |
-| A2 | SharedArrayBuffer | 1-2d |
 | E | WASM loaded in Playground | 1d |
-
-**Subtotal: 5-8 days**
-
-### Should Fix (before v1.0)
-
-| # | Gap | Effort |
-|---|---|---|
-| B1 | memory-manager.ts | 2-3h |
-| C1 | Worker error recovery | 1-2h |
 | D1 | Property tests for geo-algo | 2-3d |
 | D4 | TypeScript vitest tests | 1-2d |
 
@@ -185,7 +183,7 @@ Design mentions both. Neither implemented.
 
 | # | Gap | Reason |
 |---|---|---|
-| A4 | comlink | Manual RPC works fine, no dependency needed |
+| A4 | comlink | Manual RPC works fine |
 | B2 | Turf.js fallback | WASM 97%+ coverage |
 
-**Grand total (all gaps)**: 4-5 weeks. **Must Fix only**: 5-8 days.
+**Resolved: 4 gaps. Remaining: 3 gaps (4-6 days).**
