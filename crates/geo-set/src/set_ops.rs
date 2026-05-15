@@ -89,3 +89,93 @@ mod tests {
         assert!(matches!(result, Geometry::MultiPolygon(_)));
     }
 }
+    fn square_at(x: f64, y: f64) -> Geometry {
+        Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x, y }, Point { x: x + 1.0, y },
+                    Point { x: x + 1.0, y: y + 1.0 }, Point { x, y: y + 1.0 },
+                    Point { x, y },
+                ],
+            },
+            interiors: vec![],
+        })
+    }
+
+    #[test]
+    fn test_intersect_overlapping() {
+        let a = square_at(0.0, 0.0);
+        let b = square_at(0.5, 0.5);
+        let result = intersect(&a, &b).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+
+    #[test]
+    fn test_difference_basic() {
+        let a = square_at(0.0, 0.0);
+        let b = square_at(0.5, 0.5);
+        let result = difference(&a, &b).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+
+    #[test]
+    fn test_xor_basic() {
+        let a = square_at(0.0, 0.0);
+        let b = square_at(0.5, 0.5);
+        let result = xor(&a, &b).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+
+    #[test]
+    fn test_set_ops_error_on_point() {
+        let pt = Geometry::Point(Point { x: 0.0, y: 0.0 });
+        let sq = square_at(0.0, 0.0);
+        assert!(union(&pt, &sq).is_err());
+        assert!(intersect(&pt, &sq).is_err());
+        assert!(difference(&pt, &sq).is_err());
+    fn square_at(x: f64, y: f64) -> Geometry {
+        Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x, y }, Point { x: x + 1.0, y },
+                    Point { x: x + 1.0, y: y + 1.0 }, Point { x, y: y + 1.0 },
+                    Point { x, y },
+                ],
+            },
+            interiors: vec![],
+        })
+    }
+
+    #[test]
+    fn test_intersect_overlapping() {
+        let a = square_at(0.0, 0.0);
+        let b = square_at(0.5, 0.5);
+        let result = intersect(&a, &b).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+
+    #[test]
+    fn test_difference_basic() {
+        let a = square_at(0.0, 0.0);
+        let b = square_at(0.5, 0.5);
+        let result = difference(&a, &b).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+
+    #[test]
+    fn test_xor_basic() {
+        let a = square_at(0.0, 0.0);
+        let b = square_at(0.5, 0.5);
+        let result = xor(&a, &b).unwrap();
+        assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+
+    #[test]
+    fn test_set_ops_error_on_point() {
+        let pt = Geometry::Point(Point { x: 0.0, y: 0.0 });
+        let sq = square_at(0.0, 0.0);
+        assert!(union(&pt, &sq).is_err());
+        assert!(intersect(&pt, &sq).is_err());
+        assert!(difference(&pt, &sq).is_err());
+    }
+}

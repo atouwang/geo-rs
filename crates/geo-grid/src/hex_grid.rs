@@ -52,3 +52,31 @@ fn make_hex_mercator(cx: f64, cy: f64, size_m: f64) -> Polygon {
     coords.push(coords[0]); // close ring
     Polygon { exterior: LineString { coords }, interiors: vec![] }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hex_grid_beijing() {
+        let bbox = BBox { min_x: 116.0, min_y: 39.5, max_x: 117.0, max_y: 40.5 };
+        let grid = hex_grid(&bbox, 5000.0, Units::Meters);
+        assert!(grid.len() > 0);
+        // All hexes should be valid polygons
+        for hex in &grid {
+            assert!(hex.exterior.coords.len() >= 4);
+            assert_eq!(hex.exterior.coords.first(), hex.exterior.coords.last());
+        }
+    }
+
+    #[test]
+    fn test_hex_grid_returns_valid_polygons() {
+        let bbox = BBox { min_x: 0.0, min_y: 0.0, max_x: 0.01, max_y: 0.01 };
+        let grid = hex_grid(&bbox, 100.0, Units::Meters);
+        for hex in &grid {
+            // Each hex has 6 sides + closing point = 7 coords
+            assert!(hex.exterior.coords.len() == 7);
+            assert!(hex.interiors.is_empty());
+        }
+    }
+}

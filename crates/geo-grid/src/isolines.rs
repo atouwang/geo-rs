@@ -89,3 +89,51 @@ fn build_triangulation(points: &[Point]) -> Vec<(usize, usize, usize)> {
     }
     triangles
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_isolines_simple() {
+        // 4 corner points forming a square with a central peak
+        let pts = vec![
+            Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
+            Point { x: 1.0, y: 1.0 }, Point { x: 0.0, y: 1.0 },
+        ];
+        let values = vec![0.0, 0.0, 1.0, 0.0];
+        let breaks = vec![0.5];
+        let lines = isolines(&pts, &values, &breaks);
+        // Should produce contour lines around the high value
+        assert!(!lines.is_empty());
+    }
+
+    #[test]
+    fn test_isolines_empty_input() {
+        assert!(isolines(&[], &[], &[1.0]).is_empty());
+    }
+
+    #[test]
+    fn test_isolines_no_breaks() {
+        let pts = vec![Point { x: 0.0, y: 0.0 }];
+        let values = vec![1.0];
+        assert!(isolines(&pts, &values, &[]).is_empty());
+    }
+
+    #[test]
+    fn test_isolines_single_break() {
+        // Triangle with values on each vertex
+        let pts = vec![
+            Point { x: 0.0, y: 0.0 },
+            Point { x: 1.0, y: 0.0 },
+            Point { x: 0.5, y: 1.0 },
+        ];
+        let values = vec![0.0, 0.0, 1.0];
+        let breaks = vec![0.5];
+        let lines = isolines(&pts, &values, &breaks);
+        // The 0.5 contour should cross two edges of the triangle
+        for line in &lines {
+            assert!(line.coords.len() == 2);
+        }
+    }
+}
