@@ -1,0 +1,12 @@
+{
+  "name": "geo-rs",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "pnpm --filter @geo-rs/site dev",
+    "build": "pnpm --filter @geo-rs/core build && pnpm --filter @geo-rs/vue build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  }
+}
