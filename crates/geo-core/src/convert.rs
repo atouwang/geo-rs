@@ -2,6 +2,20 @@ use crate::error::GeoError;
 use crate::types::*;
 use geojson::{GeometryValue as Gv, Position};
 
+// --- MessagePack binary serialization ---
+
+pub fn from_msgpack(bytes: &[u8]) -> Result<Geometry, GeoError> {
+    rmp_serde::from_slice(bytes)
+        .map_err(|e| GeoError::SerializationError(format!("MsgPack: {}", e)))
+}
+
+pub fn to_msgpack(geom: &Geometry) -> Result<Vec<u8>, GeoError> {
+    rmp_serde::to_vec(geom)
+        .map_err(|e| GeoError::SerializationError(format!("MsgPack: {}", e)))
+}
+
+// --- GeoJSON text serialization ---
+
 pub fn from_geojson(json: &str) -> Result<Geometry, GeoError> {
     let gj: geojson::GeoJson =
         serde_json::from_str(json).map_err(|e| GeoError::SerializationError(format!("{}", e)))?;

@@ -66,7 +66,11 @@ export class WorkerManager {
     const id = ++nextId
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject })
-      this.worker.postMessage({ id, method, args })
+      const transfer: Transferable[] = []
+      for (const arg of args) {
+        if (arg instanceof Uint8Array) transfer.push(arg.buffer)
+      }
+      this.worker.postMessage({ id, method, args }, { transfer })
     })
   }
 

@@ -1,4 +1,5 @@
 import { WorkerManager, checkWasmSupport, WasmNotSupportedError } from './worker-manager'
+import { encode, decode } from '@msgpack/msgpack'
 import type { EngineConfig, GeoJSON } from './types'
 
 const OP_CODES = {
@@ -30,13 +31,13 @@ export class GeoEngine {
   }
 
   async load(geojson: GeoJSON): Promise<bigint> {
-    const json = typeof geojson === 'string' ? geojson : JSON.stringify(geojson)
-    return (await this.call('load', [json])) as bigint
+    const data = encode(geojson)
+    return (await this.call('load', [data])) as bigint
   }
 
   async read(handle: bigint): Promise<GeoJSON> {
-    const json = (await this.call('read', [handle])) as string
-    return JSON.parse(json)
+    const bytes = (await this.call('read', [handle])) as Uint8Array
+    return decode(bytes) as GeoJSON
   }
 
   async buffer(handle: bigint, radius: number): Promise<bigint> {

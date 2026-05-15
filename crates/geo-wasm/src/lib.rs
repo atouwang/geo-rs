@@ -24,12 +24,12 @@ impl Engine {
         Self { inner: WasmEngine::new() }
     }
 
-    pub fn load(&mut self, geojson: &str) -> Result<u64, JsValue> {
-        self.inner.load_geojson(geojson).map_err(|e| JsValue::from_str(&e))
+    pub fn load(&mut self, data: &[u8]) -> Result<u64, JsValue> {
+        self.inner.load_bytes(data).map_err(|e| JsValue::from_str(&e))
     }
 
-    pub fn read(&self, handle: u64) -> Result<String, JsValue> {
-        self.inner.read_geojson(handle).map_err(|e| JsValue::from_str(&e))
+    pub fn read(&self, handle: u64) -> Result<Vec<u8>, JsValue> {
+        self.inner.read_bytes(handle).map_err(|e| JsValue::from_str(&e))
     }
 
     pub fn execute_unary(&mut self, op_code: u8, handle: u64, param: f64) -> Result<u64, JsValue> {

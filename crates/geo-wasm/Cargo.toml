@@ -17,6 +17,7 @@ geo-index = { path = "../geo-index" }
 geo-grid = { path = "../geo-grid" }
 wasm-bindgen.workspace = true
 serde_json.workspace = true
+rmp-serde.workspace = true
 console_error_panic_hook.workspace = true
 wee_alloc.workspace = true
 

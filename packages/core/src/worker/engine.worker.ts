@@ -22,11 +22,14 @@ self.onmessage = (e: MessageEvent) => {
   }
   try {
     const result = engine[method](...args)
-    self.postMessage({ id, ok: true, result })
+    const transfer: Transferable[] = []
+    if (result instanceof Uint8Array) {
+      transfer.push(result.buffer)
+    }
+    self.postMessage({ id, ok: true, result }, { transfer })
   } catch (err) {
     self.postMessage({
-      id,
-      ok: false,
+      id, ok: false,
       error: err instanceof Error ? err.message : String(err),
     })
   }

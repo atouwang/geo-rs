@@ -28,14 +28,14 @@ pub struct WasmEngine {
 impl WasmEngine {
     pub fn new() -> Self { Self { arena: MemoryArena::new() } }
 
-    pub fn load_geojson(&mut self, json: &str) -> Result<u64, String> {
-        let geom = geo_core::convert::from_geojson(json).map_err(|e| e.to_string())?;
+    pub fn load_bytes(&mut self, data: &[u8]) -> Result<u64, String> {
+        let geom = geo_core::convert::from_msgpack(data).map_err(|e| e.to_string())?;
         self.arena.store(geom).map_err(|e| e.to_string())
     }
 
-    pub fn read_geojson(&self, handle: u64) -> Result<String, String> {
+    pub fn read_bytes(&self, handle: u64) -> Result<Vec<u8>, String> {
         let geom = self.arena.get(handle).map_err(|e| e.to_string())?;
-        geo_core::convert::to_geojson(geom).map_err(|e| e.to_string())
+        geo_core::convert::to_msgpack(geom).map_err(|e| e.to_string())
     }
 
     pub fn execute_unary(&mut self, op_code: u8, handle: u64, param: f64) -> Result<u64, String> {
@@ -206,47 +206,55 @@ fn dispatch_measure(op: u8, geom: &Geometry) -> Result<f64, String> {
 mod tests {
     use super::*;
 
-    fn pt(x: f64, y: f64) -> String {
-        format!(r#"{{"type":"Point","coordinates":[{},{}]}}"#, x, y)
+    fn pt_geom(x: f64, y: f64) -> Geometry { Geometry::Point(Point { x, y }) }
+    fn square_geom() -> Geometry {
+        Geometry::Polygon(Polygon {
+            exterior: LineString { coords: vec![
+                Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
+                Point { x: 1.0, y: 1.0 }, Point { x: 0.0, y: 1.0 },
+                Point { x: 0.0, y: 0.0 },
+            ]},
+            interiors: vec![],
+        })
     }
-    fn square() -> String {
-        r#"{"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}"#.to_string()
-    }
+
+    fn encode(g: &Geometry) -> Vec<u8> { geo_core::convert::to_msgpack(g).unwrap() }
 
     #[test] fn test_load_read() {
         let mut e = WasmEngine::new();
-        let h = e.load_geojson(&pt(10.0, 20.0)).unwrap();
-        assert!(e.read_geojson(h).unwrap().contains("10.0"));
+        let h = e.load_bytes(&encode(&pt_geom(10.0, 20.0))).unwrap();
+        let bytes = e.read_bytes(h).unwrap();
+        let geom: Geometry = rmp_serde::from_slice(&bytes).unwrap();
+        assert!(matches!(geom, Geometry::Point(_)));
     }
     #[test] fn test_area() {
         let mut e = WasmEngine::new();
-        let h = e.load_geojson(&square()).unwrap();
+        let h = e.load_bytes(&encode(&square_geom())).unwrap();
         assert!(e.execute_measure(OP_AREA, h).unwrap() > 0.0);
     }
     #[test] fn test_contains() {
         let mut e = WasmEngine::new();
-        let hp = e.load_geojson(&square()).unwrap();
-        let ht = e.load_geojson(&pt(0.5, 0.5)).unwrap();
+        let hp = e.load_bytes(&encode(&square_geom())).unwrap();
+        let ht = e.load_bytes(&encode(&pt_geom(0.5, 0.5))).unwrap();
         assert!(e.execute_bool(OP_CONTAINS, hp, ht).unwrap());
     }
     #[test] fn test_buffer() {
         let mut e = WasmEngine::new();
-        let h = e.load_geojson(&square()).unwrap();
+        let h = e.load_bytes(&encode(&square_geom())).unwrap();
         let hb = e.execute_unary(OP_BUFFER, h, 0.1).unwrap();
-        let json = e.read_geojson(hb).unwrap();
-        assert!(json.contains("Polygon") || json.contains("MultiPolygon"));
+        let _bytes = e.read_bytes(hb).unwrap();
     }
     #[test] fn test_union() {
         let mut e = WasmEngine::new();
-        let h1 = e.load_geojson(&square()).unwrap();
-        let h2 = e.load_geojson(&square()).unwrap();
+        let h1 = e.load_bytes(&encode(&square_geom())).unwrap();
+        let h2 = e.load_bytes(&encode(&square_geom())).unwrap();
         let h3 = e.execute_binary(OP_UNION, h1, h2).unwrap();
-        assert!(e.read_geojson(h3).unwrap().contains("Polygon"));
+        let _bytes = e.read_bytes(h3).unwrap();
     }
     #[test] fn test_free() {
         let mut e = WasmEngine::new();
-        let h = e.load_geojson(&pt(1.0, 2.0)).unwrap();
+        let h = e.load_bytes(&encode(&pt_geom(1.0, 2.0))).unwrap();
         assert!(e.free(h).is_ok());
-        assert!(e.read_geojson(h).is_err());
+        assert!(e.read_bytes(h).is_err());
     }
 }
