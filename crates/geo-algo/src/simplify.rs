@@ -49,6 +49,7 @@ fn poly_to_geo(p: &Polygon) -> geo_types::Polygon {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use geo_core::types::*;
 
     #[test]
     fn test_simplify_line() {
@@ -74,3 +75,36 @@ mod tests {
         assert!(matches!(result, Geometry::Polygon(_)));
     }
 }
+
+    #[test]
+    fn test_simplify_preserves_shape() {
+        // Simplified geometry should still be valid
+        let poly = Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 0.0, y: 0.0 }, Point { x: 10.0, y: 0.0 },
+                    Point { x: 10.0, y: 10.0 }, Point { x: 0.0, y: 10.0 },
+                    Point { x: 0.0, y: 0.0 },
+                ],
+            },
+            interiors: vec![],
+        });
+        let result = simplify(&poly, 2.0).unwrap();
+        assert!(matches!(result, Geometry::Polygon(_)));
+        // Simplified should have 4 corners (with tolerance it might keep 4-5)
+        if let Geometry::Polygon(p) = &result {
+            assert!(p.exterior.coords.len() <= 6);
+        }
+    }
+
+    #[test]
+    fn test_simplify_noop() {
+        // Zero tolerance should preserve input
+        let line = Geometry::LineString(LineString {
+            coords: vec![Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 1.0 }],
+        });
+        let result = simplify(&line, 0.0).unwrap();
+        if let Geometry::LineString(ls) = &result {
+            assert_eq!(ls.coords.len(), 2);
+        }
+    }

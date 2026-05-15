@@ -43,4 +43,45 @@ mod tests {
     #[test] fn test_disjoint() { assert!(disjoint(&square(), &point_outside())); }
     #[test] fn test_within() { assert!(within(&point_inside(), &square())); }
     #[test] fn test_equals() { assert!(equals(&square(), &square())); }
+
+    #[test] fn test_touches() {
+        let sq1 = Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
+                    Point { x: 1.0, y: 1.0 }, Point { x: 0.0, y: 1.0 },
+                    Point { x: 0.0, y: 0.0 },
+                ],
+            },
+            interiors: vec![],
+        });
+        let sq2 = Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 1.0, y: 0.0 }, Point { x: 2.0, y: 0.0 },
+                    Point { x: 2.0, y: 1.0 }, Point { x: 1.0, y: 1.0 },
+                    Point { x: 1.0, y: 0.0 },
+                ],
+            },
+            interiors: vec![],
+        });
+        assert!(touches(&sq1, &sq2));
+    }
+
+    #[test] fn test_crosses() {
+        let line = Geometry::LineString(LineString {
+            coords: vec![Point { x: -1.0, y: 0.5 }, Point { x: 2.0, y: 0.5 }],
+        });
+        let sq = Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
+                    Point { x: 1.0, y: 1.0 }, Point { x: 0.0, y: 1.0 },
+                    Point { x: 0.0, y: 0.0 },
+                ],
+            },
+            interiors: vec![],
+        });
+        assert!(crosses(&line, &sq));
+    }
 }

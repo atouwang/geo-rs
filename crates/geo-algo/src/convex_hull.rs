@@ -14,3 +14,36 @@ pub fn convex_hull(geom: &Geometry) -> Result<Geometry, GeoError> {
         }).collect(),
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use geo_core::types::*;
+
+    #[test]
+    fn test_convex_hull_triangle() {
+        let tri = Geometry::Polygon(Polygon {
+            exterior: LineString {
+                coords: vec![
+                    Point { x: 0.0, y: 0.0 }, Point { x: 2.0, y: 0.0 },
+                    Point { x: 1.0, y: 2.0 }, Point { x: 0.0, y: 0.0 },
+                ],
+            },
+            interiors: vec![],
+        });
+        let hull = convex_hull(&tri).unwrap();
+        assert!(matches!(hull, Geometry::Polygon(_)));
+    }
+
+    #[test]
+    fn test_convex_hull_multipoint() {
+        let pts = Geometry::MultiPoint(MultiPoint {
+            points: vec![
+                Point { x: 0.0, y: 0.0 }, Point { x: 1.0, y: 0.0 },
+                Point { x: 2.0, y: 0.0 }, Point { x: 0.5, y: 0.5 },
+            ],
+        });
+        let hull = convex_hull(&pts).unwrap();
+        assert!(matches!(hull, Geometry::Polygon(_)));
+    }
+}
