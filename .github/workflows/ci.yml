@@ -64,6 +64,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install
+        env:
+          npm_config_only_built_dependencies: esbuild
       - name: Type check
         run: pnpm typecheck
 
