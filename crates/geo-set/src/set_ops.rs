@@ -15,21 +15,10 @@ fn to_geo_mp(geom: &Geometry) -> Result<geo_types::MultiPolygon, GeoError> {
 
 fn poly_to_geo(p: &Polygon) -> geo_types::Polygon {
     geo_types::Polygon::new(
-        p.exterior
-            .coords
-            .iter()
-            .map(|pt| geo_types::Coord { x: pt.x, y: pt.y })
-            .collect::<Vec<_>>()
-            .into(),
+        p.exterior.coords.iter().map(|pt| geo_types::Coord { x: pt.x, y: pt.y }).collect::<Vec<_>>().into(),
         p.interiors
             .iter()
-            .map(|i| {
-                i.coords
-                    .iter()
-                    .map(|pt| geo_types::Coord { x: pt.x, y: pt.y })
-                    .collect::<Vec<_>>()
-                    .into()
-            })
+            .map(|i| i.coords.iter().map(|pt| geo_types::Coord { x: pt.x, y: pt.y }).collect::<Vec<_>>().into())
             .collect(),
     )
 }
@@ -43,15 +32,11 @@ fn mp_to_ours(mp: &geo_types::MultiPolygon) -> Geometry {
         polygons: mp
             .iter()
             .map(|p| Polygon {
-                exterior: LineString {
-                    coords: p.exterior().coords().map(|c| Point { x: c.x, y: c.y }).collect(),
-                },
+                exterior: LineString { coords: p.exterior().coords().map(|c| Point { x: c.x, y: c.y }).collect() },
                 interiors: p
                     .interiors()
                     .iter()
-                    .map(|ls| LineString {
-                        coords: ls.coords().map(|c| Point { x: c.x, y: c.y }).collect(),
-                    })
+                    .map(|ls| LineString { coords: ls.coords().map(|c| Point { x: c.x, y: c.y }).collect() })
                     .collect(),
             })
             .collect(),
