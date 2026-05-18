@@ -64,6 +64,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --ignore-scripts
+      - name: Build core (for type declarations)
+        run: pnpm --filter @geo-rs/core build
       - name: Type check
         run: pnpm typecheck
 
