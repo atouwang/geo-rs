@@ -28,5 +28,10 @@ Thumbs.db
 .env
 .env.local
 
+# Claude Code / tools
+.claude/
+.clawhub/
+skills/
+
 # FlatBuffers generated
 **/fbs_schema.rs

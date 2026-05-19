@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "pnpm --filter @geo-rs/site dev",
     "build": "pnpm --filter @geo-rs/core build && pnpm --filter @geo-rs/vue build",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @geo-rs/core build && pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test"
   },
