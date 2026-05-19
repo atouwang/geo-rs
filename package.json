@@ -8,9 +8,6 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
-  },
   "devDependencies": {
     "eslint": "^10.3.0",
     "prettier": "^3.8.3",
