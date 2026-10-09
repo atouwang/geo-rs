@@ -29,9 +29,18 @@ pnpm typecheck
 pnpm build
 ```
 
-pnpm test runs SDK tests, real WASM transport tests and benchmark-parser tests. It requires the generated WASM package. Lint checks both TypeScript and Vue SFCs; build includes the core library, Vue library and site.
+pnpm test runs SDK tests, real WASM transport tests, Vue concurrency/rendering tests and benchmark-parser tests. It requires the generated WASM package. Lint checks both TypeScript and Vue SFCs; build includes the core library, Vue library and site.
 
 With pnpm dev running, open http://127.0.0.1:5173/tests/browser-smoke.html and run the browser suite. It covers actual dedicated/shared workers, stateless APIs, reference cleanup and client memory-budget isolation. Also check the Playground success, failure, recovery and route-unmount states. Recheck production output using vite preview after pnpm build.
+
+The Vue suite at /tests/browser-vue.html checks actual canvas pixels for transparent holes, resize/nested updates/null clearing, concurrent buffer calls and scope disposal. To run both suites against packaged production output after pnpm build:
+
+```sh
+pnpm --filter @geo-rs/site build:browser
+pnpm --filter @geo-rs/site exec vite preview --outDir dist/browser --host 127.0.0.1
+```
+
+Open /tests/browser-smoke.html and /tests/browser-vue.html at the preview URL and click their run buttons. The suites are built/linted/typechecked, but browser execution remains manual in CI.
 
 ## Production and benchmarks
 

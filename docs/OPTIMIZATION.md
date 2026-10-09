@@ -26,7 +26,7 @@ Reviewed the Rust workspace, WASM dispatcher/arena, dedicated/shared workers, SD
 
 Arena deduplication now compares stored geometry directly and caches its hash for release, avoiding repeated serialization during equality checks and removal. No unmeasured speedup is claimed.
 
-## Verification
+## Verification — first audit
 
 - Rust: 67 unit tests; strict all-target Clippy; rustfmt; workspace WASM-target check; private/public rustdoc build.
 - SDK: 48 Vitest tests, including three tests against the actual generated WASM; four Node benchmark-tool tests.
@@ -35,7 +35,7 @@ Arena deduplication now compares stored geometry directly and caches its hash fo
 - Browser: dedicated-worker repeated import/export/release, stateless centroid/contains/union/Voronoi, SharedWorker concurrent clients and independent clear/disconnect, zero budget; all passed in the in-app browser.
 - Playground: area/centroid/buffer/simplify/length, unsupported-operation error, recovery, zero arena allocation after each run, and production-preview route leave/reentry verified.
 - Screenshots: [development](evidence/playground-2026-10-09.png), [production](evidence/playground-production-2026-10-09.png).
-- GitHub: the first two delivered commits passed CI. The final CI run must be checked after the remaining commits are pushed; local gates are evidence of local validation, not a substitute for hosted CI.
+- GitHub: the first audit's final commit c2bf34a passed all applicable hosted CI jobs.
 
 The browser smoke page is a repeatable manual suite at /tests/browser-smoke.html under the site dev server. It is typechecked and linted; CI currently runs real WASM in Node but does not automate browser UI interaction. No fresh native-vs-Turf or end-to-end benchmark suite was run in this audit, so historical site figures are not updated as current results.
 
@@ -51,6 +51,9 @@ The browser smoke page is a repeatable manual suite at /tests/browser-smoke.html
 - GeoCanvas renders Features/collections, all primitive geometry types and evenodd polygon holes. Post-update deep/dimension watching redraws after resize or nested changes; null/empty/invalid input clears safely. Three path-level tests and a real browser pixel suite verify holes, resizing, mutation, clearing, concurrent WASM buffer and scope disposal. Vue CSS is available through @geo-rs/vue/style.css. Evidence: [Vue browser regression](evidence/vue-regression-2026-10-09.png).
 - Sampled Voronoi now restricts output to the supplied bbox, uses normalized RTree nearest-neighbor queries instead of scanning every point per sample and returns regions in stable input-index order. The Rust API returns Result and rejects invalid/degenerate bounds, unsupported numeric ranges and more than 10,000 points before sampling. Tests compare boundary ownership with brute-force distances, check repeatability/bounds and verify real-WASM recovery/refcounts. The algorithm remains approximate: small/duplicate/unsampled regions may be omitted and cells do not form an exact gap-free partition. No runtime speedup is claimed without comparative measurement.
 - Vue Voronoi accepts optional caller bounds; automatic bounds pad degenerate axes by 5% of the larger input span (or one coordinate unit for coincident sites), keeping collinear/coincident inputs usable. Three unit tests and production-browser cases cover this behavior.
+- Added a production build of both browser suites using packaged SDK/Vue output, and CI compiles these pages. Clean-output verification exposed a missing Vue declaration prerequisite in root typecheck; it now builds core and Vue before checking dependent packages. Generated local outputs were moved aside and the full TypeScript test/lint/typecheck/build sequence passed from that state.
+
+Second-audit verification: 76 Rust tests; 52 SDK tests (five real-WASM cases), 13 Vue tests and four tooling tests (69 JS tests total); strict Clippy, rustfmt, WASM-target checking, rustdoc, release WASM build with --no-opt, frozen/offline installation, full library/site builds and packaged browser suite build. Both production-preview browser suites pass, including invalid-import recovery, Voronoi bbox, transparent holes/resize/null/deep updates, actual concurrent buffer, scope disposal and collinear/coincident Voronoi sites. Console error/warning logs are empty. [Production evidence](evidence/vue-production-2026-10-09.png). Browser execution remains manual; no comparative speedup or complete topology/geodesic correctness is claimed.
 
 1. **Coordinate and unit contract.** Measurements and polygon buffering remain planar; Vue now rejects explicit metric units. Define Cartesian versus WGS84 semantics and metric-buffer reference cases before expanding the API; document Mercator distortion and antimeridian limits.
 2. **Topology validation and resource bounds.** Structural/numeric input checks are covered, but complete self-intersection/hole validity and temporary operation allocations still need coverage. Arena budgets estimate geometry storage rather than all WASM allocations.

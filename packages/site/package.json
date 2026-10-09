@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:browser": "vite build --config vite.browser.config.ts",
     "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p tsconfig.browser.json",
     "lint": "eslint src/ tests/"
   },

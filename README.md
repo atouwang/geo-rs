@@ -12,7 +12,11 @@ Geometries remain in WASM memory between operations. Import and export use GeoJS
 - Playground: real SDK operations in a dedicated worker, with results and memory statistics.
 - SharedWorker: compiled module shared between clients; each client has its own arena and memory budget.
 
-This is a development repository. The API is not a Turf.js drop-in replacement. Measurements and polygon buffers are planar; buffer distance uses input coordinate units. Metric/geodesic buffering, exact Voronoi, rendering coverage and end-to-end benchmarks remain follow-up work. See [the current audit](docs/OPTIMIZATION.md) for priorities and [the onboarding guide](docs/ONBOARDING.md) for code entry points.
+This is a development repository. The API is not a Turf.js drop-in replacement. Measurements and polygon buffers are planar; buffer distance uses input coordinate units and returns a MultiPolygon. Vue rejects explicit metric units until conversion is supported. Metric/geodesic buffering, exact Voronoi and end-to-end benchmarks remain follow-up work. See [the current audit](docs/OPTIMIZATION.md) for priorities and [the onboarding guide](docs/ONBOARDING.md) for code entry points.
+
+GeoCanvas accepts geometries, Features and FeatureCollections, including polygon holes. Import @geo-rs/vue/style.css for its default appearance. Composables keep the latest request result/error and remain loading until all pending requests finish.
+
+Rust hex_grid and voronoi now return Result. Hex side lengths use Web Mercator projected units and grids are capped at 100,000 cells. Sampled Voronoi stays inside a finite ordered bbox, accepts at most 10,000 points and may omit small/duplicate/unsampled regions. It does not create an exact gap-free partition.
 
 ## Local setup
 
@@ -64,7 +68,7 @@ pnpm typecheck
 pnpm build
 ```
 
-Tests include JavaScript-to-real-WASM transport, handle lifetimes, worker failures and benchmark-output parsing. For the interactive browser smoke suite, run the site and open /tests/browser-smoke.html.
+Tests include JavaScript-to-real-WASM transport, handle lifetimes, worker failures, Vue concurrency/rendering and benchmark-output parsing. For interactive browser suites, run the site and open /tests/browser-smoke.html and /tests/browser-vue.html. To verify packaged output, run pnpm --filter @geo-rs/site build:browser, then preview dist/browser as described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
