@@ -1,34 +1,32 @@
 import { GeoEngine } from '../engine'
 
 let sharedEngine: GeoEngine | null = null
-let refCount = 0
 let initPromise: Promise<GeoEngine> | null = null
 
 export async function getSharedEngine(): Promise<GeoEngine> {
-  refCount++
   if (sharedEngine) return sharedEngine
   if (!initPromise) {
-    initPromise = GeoEngine.init().then((engine) => {
+    const pending = GeoEngine.init().then((engine) => {
+      if (initPromise !== pending) {
+        engine.destroy()
+        throw new Error('Shared engine was shut down during initialization')
+      }
       sharedEngine = engine
       return engine
+    }).catch((error) => {
+      if (initPromise === pending) initPromise = null
+      throw error
     })
+    initPromise = pending
   }
   return initPromise
 }
 
-export function releaseSharedEngine(): void {
-  refCount--
-  if (refCount <= 0 && sharedEngine) {
-    refCount = 0
-    // Keep the shared engine alive for reuse
-    // sharedEngine.destroy() would be called on explicit shutdown
-  }
-}
+// Handles are freed by each API; the engine stays alive for reuse.
+export function releaseSharedEngine(): void {}
 
 export function shutdownSharedEngine(): void {
-  if (sharedEngine) {
-    sharedEngine.destroy()
-    sharedEngine = null
-    initPromise = null
-  }
+  initPromise = null
+  sharedEngine?.destroy()
+  sharedEngine = null
 }

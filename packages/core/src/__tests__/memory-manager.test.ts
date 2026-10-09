@@ -45,4 +45,15 @@ describe('MemoryManager', () => {
   it('free() does not throw on unknown handles', () => {
     expect(() => mm.free(999n)).not.toThrow()
   })
+
+  it('keeps deduplicated handles active until all references are released', () => {
+    mm.register(1n)
+    mm.register(1n)
+    mm.free(1n)
+    expect(() => mm.validate(1n)).not.toThrow()
+    mm.free(1n)
+    expect(() => mm.validate(1n)).toThrow('already freed')
+    mm.free(1n)
+    expect(mm.stats()).toEqual({ active: 0, freed: 1, total: 1 })
+  })
 })

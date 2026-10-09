@@ -1,160 +1,124 @@
 type PendingRequest = {
-  resolve: (value: bigint | number | boolean | string) => void
+  resolve: (value: unknown) => void
   reject: (error: Error) => void
 }
 
-let nextId = 0
-
 export class WorkerManager {
   private worker: Worker | SharedWorker
-  private workerUrl: string | URL
+  private target: Worker | MessagePort
   private pending = new Map<number, PendingRequest>()
   private ready = false
   private readyPromise: Promise<void>
+  private failure: Error | null = null
+  private rejectInit?: (error: Error) => void
+  private nextId = 0
   private sharedMode: boolean
-  private memoryLimit?: number
 
   constructor(options?: { workerUrl?: string | URL; canvas?: HTMLCanvasElement; shared?: boolean; memoryLimit?: number }) {
-    this.sharedMode = options?.shared ?? false
-    this.memoryLimit = options?.memoryLimit
-    const url = options?.workerUrl ?? new URL('./worker/engine.worker.ts', import.meta.url)
-    this.workerUrl = url
-
-    if (options?.canvas) {
-      const offscreen = options.canvas.transferControlToOffscreen()
-      this.worker = new Worker(url, { type: 'module' })
-      ;(this.worker as Worker).postMessage({ type: 'init_canvas', canvas: offscreen }, [offscreen])
-    } else if (this.sharedMode) {
-      this.worker = new SharedWorker(url, { type: 'module' })
-      ;(this.worker as SharedWorker).port.onmessage = this.onMessage.bind(this)
-      ;(this.worker as SharedWorker).port.start()
-    } else {
-      this.worker = new Worker(url, { type: 'module' })
-      ;(this.worker as Worker).onmessage = this.onMessage.bind(this)
-      ;(this.worker as Worker).onerror = this.onError.bind(this)
+    if (options?.canvas) throw new Error('OffscreenCanvas rendering is not implemented')
+    if (options?.memoryLimit !== undefined && (!Number.isSafeInteger(options.memoryLimit) || options.memoryLimit < 0)) {
+      throw new Error('memoryLimit must be a non-negative safe integer')
     }
-    this.readyPromise = this.waitForReady()
-  }
-
-  private sendInit(): void {
-    const initMsg: Record<string, unknown> = { type: 'init' }
-    if (this.memoryLimit) initMsg.memoryLimit = this.memoryLimit
-    this.postMessage(initMsg)
-  }
-
-  private waitForReady(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const handler = (e: MessageEvent) => {
-        if (e.data?.type === 'ready') {
+    this.sharedMode = options?.shared ?? false
+    if (this.sharedMode) {
+      this.worker = options?.workerUrl
+        ? new SharedWorker(options.workerUrl, { type: 'module' })
+        : new SharedWorker(new URL('./worker/engine.shared.worker.ts', import.meta.url), { type: 'module' })
+      this.target = this.worker.port
+    } else {
+      this.worker = options?.workerUrl
+        ? new Worker(options.workerUrl, { type: 'module' })
+        : new Worker(new URL('./worker/engine.worker.ts', import.meta.url), { type: 'module' })
+      this.target = this.worker
+    }
+    this.target.onmessage = this.onMessage
+    this.target.onmessageerror = () => this.fail(new Error('Worker message could not be decoded'))
+    this.worker.onerror = (event: ErrorEvent) => this.fail(new Error(
+      (event.message || 'Worker error') + '. WASM engine state lost — reinitialize required.',
+    ))
+    this.readyPromise = new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => this.fail(new Error('WASM engine initialization timed out')), 10000)
+      const cleanup = () => {
+        clearTimeout(timeout)
+        this.target.removeEventListener('message', handler)
+        this.rejectInit = undefined
+      }
+      const handler: EventListener = (event) => {
+        const data = (event as MessageEvent).data
+        if (data?.type === 'ready') {
+          cleanup()
           this.ready = true
           resolve()
-        } else if (e.data?.type === 'error') {
-          reject(new Error(e.data.message))
+        } else if (data?.type === 'error') {
+          this.fail(new Error(data.message))
         }
       }
-      ;(this.worker as any).addEventListener('message', handler)
-      setTimeout(() => {
-        if (!this.ready) reject(new Error('WASM engine initialization timed out'))
-      }, 10000)
-      this.sendInit()
+      this.rejectInit = (error) => { cleanup(); reject(error) }
+      this.target.addEventListener('message', handler)
+      if (this.sharedMode) (this.target as MessagePort).start()
+      try {
+        this.postMessage({ type: 'init', memoryLimit: options?.memoryLimit })
+      } catch (error) {
+        this.fail(error instanceof Error ? error : new Error(String(error)))
+      }
     })
+    void this.readyPromise.catch(() => {})
   }
 
   async ensureReady(): Promise<void> {
-    if (this.ready) return
-    await this.readyPromise
+    if (this.failure) throw this.failure
+    if (!this.ready) await this.readyPromise
+    if (this.failure) throw this.failure
   }
 
-  private onMessage(e: MessageEvent) {
-    const { id, ok, result, error } = e.data
+  private onMessage = (event: MessageEvent): void => {
+    const { id, ok, result, error } = event.data ?? {}
     const pending = this.pending.get(id)
     if (!pending) return
     this.pending.delete(id)
-    if (ok) {
-      pending.resolve(result)
-    } else {
-      pending.reject(new Error(error))
-    }
+    if (ok) pending.resolve(result)
+    else pending.reject(new Error(error))
   }
 
-  private onError(e: ErrorEvent) {
-    const msg = e.message || 'Worker error'
-    for (const [, p] of this.pending) {
-      p.reject(new Error(`${msg}. WASM engine state lost — reinitialize required.`))
-    }
-    this.pending.clear()
+  private fail(error: Error): void {
+    if (this.failure) return
+    this.failure = error
     this.ready = false
-    this.readyPromise = this.reconnect()
-  }
-
-  private postMessage(msg: unknown, transfer?: Transferable[]): void {
+    this.rejectInit?.(error)
+    for (const request of this.pending.values()) request.reject(error)
+    this.pending.clear()
     if (this.sharedMode) {
-      (this.worker as SharedWorker).port.postMessage(msg, transfer ? { transfer } : undefined)
+      try { this.target.postMessage({ type: 'dispose' }) } catch { /* Port may already be closed. */ }
+      ;(this.target as MessagePort).close()
     } else {
-      (this.worker as Worker).postMessage(msg, transfer ? { transfer } : undefined)
+      ;(this.worker as Worker).terminate()
     }
   }
 
-  private async reconnect(): Promise<void> {
-    const maxDelay = 30000
-    for (let delay = 1000; delay <= maxDelay; delay *= 2) {
-      try {
-        if (this.sharedMode) {
-          (this.worker as SharedWorker).port.close()
-          this.worker = new SharedWorker(this.workerUrl, { type: 'module' })
-          ;(this.worker as SharedWorker).port.onmessage = this.onMessage.bind(this)
-          ;(this.worker as SharedWorker).port.start()
-        } else {
-          (this.worker as Worker).terminate()
-          this.worker = new Worker(this.workerUrl, { type: 'module' })
-          ;(this.worker as Worker).onmessage = this.onMessage.bind(this)
-          ;(this.worker as Worker).onerror = this.onError.bind(this)
-        }
-        await this.waitForReadyInternal()
-        this.ready = true
-        return
-      } catch {
-        await new Promise(r => setTimeout(r, delay))
-      }
-    }
-    throw new Error('Worker reconnect failed after max retries')
-  }
-
-  private waitForReadyInternal(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const handler = (e: MessageEvent) => {
-        if (e.data?.type === 'ready') resolve()
-        else if (e.data?.type === 'error') reject(new Error(e.data.message))
-      }
-      const target = this.sharedMode
-        ? (this.worker as SharedWorker).port
-        : (this.worker as Worker)
-      ;(target as any).addEventListener('message', handler, { once: true })
-      setTimeout(() => reject(new Error('Worker init timeout')), 10000)
-    })
+  private postMessage(message: unknown, transfer: Transferable[] = []): void {
+    this.target.postMessage(message, { transfer })
   }
 
   async call(method: string, args: unknown[]): Promise<unknown> {
     await this.ensureReady()
-    const id = ++nextId
+    const id = ++this.nextId
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject })
-      const transfer: Transferable[] = []
+      const buffers = new Set<ArrayBuffer>()
       for (const arg of args) {
-        if (arg instanceof Uint8Array) transfer.push(arg.buffer)
+        if (arg instanceof Uint8Array && arg.buffer instanceof ArrayBuffer) buffers.add(arg.buffer)
       }
-      this.postMessage({ id, method, args }, transfer)
+      try {
+        this.postMessage({ id, method, args }, [...buffers])
+      } catch (error) {
+        this.pending.delete(id)
+        reject(error)
+      }
     })
   }
 
   destroy(): void {
-    if (this.sharedMode) {
-      (this.worker as SharedWorker).port.close()
-    } else {
-      (this.worker as Worker).terminate()
-    }
-    this.pending.clear()
-    this.ready = false
+    this.fail(new Error('WASM engine has been destroyed'))
   }
 }
 

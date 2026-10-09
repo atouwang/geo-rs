@@ -65,6 +65,7 @@ impl Engine {
         self.inner.isolines_from_pts(pts_handle, values_json, breaks_json).map_err(|e| JsValue::from_str(&e))
     }
 
+    #[wasm_bindgen(js_name = release)]
     pub fn free(&mut self, handle: u64) -> Result<(), JsValue> {
         self.inner.free(handle).map_err(|e| JsValue::from_str(&e))
     }

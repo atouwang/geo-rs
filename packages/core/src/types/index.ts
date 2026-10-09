@@ -16,8 +16,8 @@ export interface EngineConfig {
 }
 
 export interface WasmEngine {
-  load(geojson: string): bigint
-  read(handle: bigint): string
+  load(geojson: Uint8Array): bigint
+  read(handle: bigint): Uint8Array
   execute_unary(op_code: number, handle: bigint, param: number): bigint
   execute_binary(op_code: number, handle_a: bigint, handle_b: bigint): bigint
   execute_bool(op_code: number, handle_a: bigint, handle_b: bigint): boolean

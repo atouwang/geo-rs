@@ -2,6 +2,17 @@ import { describe, it, expect } from 'vitest'
 import { computeBBox } from '../engine'
 
 describe('computeBBox', () => {
+  it('unwraps Features and FeatureCollections including null geometries', () => {
+    expect(computeBBox({ type: 'FeatureCollection', features: [
+      { type: 'Feature', geometry: null },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [2, 3] } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [-1, 5] } },
+    ] })).toEqual({ minX: -1, minY: 3, maxX: 2, maxY: 5 })
+  })
+
+  it('rejects empty geometry instead of returning infinities', () => {
+    expect(() => computeBBox({ type: 'GeometryCollection', geometries: [] })).toThrow('finite coordinates')
+  })
   it('computes bbox for a Point', () => {
     const geom = { type: 'Point', coordinates: [10, 20] }
     expect(computeBBox(geom)).toEqual({ minX: 10, minY: 20, maxX: 10, maxY: 20 })

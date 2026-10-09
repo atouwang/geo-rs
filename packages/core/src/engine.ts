@@ -15,6 +15,7 @@ const OP_CODES = {
 export class GeoEngine {
   private worker: WorkerManager
   private memory = new MemoryManager()
+  private memoryRevision = 0
   private static wasmChecked = false
 
   private constructor(worker: WorkerManager) {
@@ -24,8 +25,8 @@ export class GeoEngine {
   static async init(config?: EngineConfig): Promise<GeoEngine> {
     if (!GeoEngine.wasmChecked) {
       const supported = await checkWasmSupport()
-      GeoEngine.wasmChecked = true
       if (!supported) throw new WasmNotSupportedError()
+      GeoEngine.wasmChecked = true
     }
     const wm = new WorkerManager({
       workerUrl: config?.workerUrl,
@@ -33,14 +34,18 @@ export class GeoEngine {
       shared: config?.shared,
       memoryLimit: config?.memoryLimit,
     })
-    await wm.ensureReady()
+    try {
+      await wm.ensureReady()
+    } catch (error) {
+      wm.destroy()
+      throw error
+    }
     return new GeoEngine(wm)
   }
 
   async load(geojson: GeoJSON): Promise<bigint> {
     const data = encode(geojson)
     const handle = (await this.call('load', [data])) as bigint
-    this.memory.register(handle)
     return handle
   }
 
@@ -100,7 +105,9 @@ export class GeoEngine {
   }
 
   async voronoi(pointsHandle: bigint, bbox: { minX: number; minY: number; maxX: number; maxY: number }): Promise<bigint> {
-    return (await this.call('voronoi', [pointsHandle, JSON.stringify(bbox)])) as bigint
+    return (await this.call('voronoi', [pointsHandle, JSON.stringify({
+      min_x: bbox.minX, min_y: bbox.minY, max_x: bbox.maxX, max_y: bbox.maxY,
+    })])) as bigint
   }
 
   free(...handles: bigint[]): void {
@@ -112,6 +119,7 @@ export class GeoEngine {
   }
 
   freeAll(): void {
+    this.memoryRevision++
     this.worker.call('free_all', []).catch(() => {})
     this.memory.clear()
   }
@@ -126,19 +134,37 @@ export class GeoEngine {
   }
 
   destroy(): void {
+    this.memoryRevision++
     this.worker.destroy()
     this.memory.clear()
   }
 
   private async call(method: string, args: unknown[]): Promise<unknown> {
-    return this.worker.call(method, args)
+    const revision = this.memoryRevision
+    const handles = method === 'execute_binary' || method === 'execute_bool'
+      ? args.slice(1, 3)
+      : method === 'execute_unary' || method === 'execute_measure'
+        ? args.slice(1, 2)
+        : method === 'read' || method === 'voronoi' ? args.slice(0, 1) : []
+    for (const handle of handles) this.memory.validate(handle as bigint)
+    const result = await this.worker.call(method, args)
+    if (revision !== this.memoryRevision) throw new Error('Engine memory was cleared while the operation was in flight')
+    if (method === 'load' || method === 'execute_unary' || method === 'execute_binary' || method === 'voronoi') {
+      this.memory.register(result as bigint)
+    }
+    return result
   }
 }
 
 function forEachCoord(geom: unknown, fn: (c: [number, number]) => void): void {
+  if (geom == null) return
   const g = geom as Record<string, unknown>
   const type = g.type as string
-  if (type === 'Point') {
+  if (type === 'Feature') {
+    forEachCoord(g.geometry, fn)
+  } else if (type === 'FeatureCollection') {
+    for (const feature of g.features as unknown[]) forEachCoord(feature, fn)
+  } else if (type === 'Point') {
     fn((g.coordinates as [number, number]))
   } else if (type === 'MultiPoint' || type === 'LineString') {
     for (const c of (g.coordinates as number[][])) fn([c[0], c[1]])
@@ -163,5 +189,8 @@ export function computeBBox(geom: unknown): { minX: number; minY: number; maxX: 
     if (x < minX) minX = x; if (y < minY) minY = y
     if (x > maxX) maxX = x; if (y > maxY) maxY = y
   })
+  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+    throw new Error('Cannot compute bbox for geometry without finite coordinates')
+  }
   return { minX, minY, maxX, maxY }
 }
