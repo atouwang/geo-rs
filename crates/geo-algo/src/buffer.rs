@@ -3,6 +3,10 @@ use geo_core::error::GeoError;
 use geo_core::types::*;
 
 pub fn buffer(geom: &Geometry, distance: f64, _units: Units) -> Result<Geometry, GeoError> {
+    geo_core::validation::validate_geometry(geom)?;
+    if !distance.is_finite() {
+        return Err(GeoError::InvalidGeometry("buffer distance must be finite".into()));
+    }
     let result_mp = match geom {
         Geometry::Polygon(p) => buffer_polygon(&polygon_to_geo(p), distance),
         Geometry::MultiPolygon(mp) => {
@@ -74,5 +78,14 @@ mod tests {
     fn test_buffer_square() {
         let result = buffer(&square(), 0.1, Units::Meters).unwrap();
         assert!(matches!(result, Geometry::MultiPolygon(_)));
+    }
+
+    #[test]
+    fn rejects_empty_ring_and_nonfinite_distance() {
+        let empty = Geometry::Polygon(Polygon { exterior: LineString { coords: vec![] }, interiors: vec![] });
+        assert!(buffer(&empty, 0.1, Units::Meters).is_err());
+        for distance in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!(buffer(&square(), distance, Units::Meters).is_err());
+        }
     }
 }

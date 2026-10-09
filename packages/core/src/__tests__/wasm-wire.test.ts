@@ -8,6 +8,26 @@ beforeAll(() => {
 })
 
 describe('real WASM and JavaScript wire format', () => {
+  it('rejects malformed inputs without poisoning the engine', () => {
+    const engine = new Engine()
+    try {
+      for (const geometry of [
+        { type: 'Polygon', coordinates: [[]] },
+        { type: 'MultiPolygon', coordinates: [[[[0, 0], [1, 0], [1, 1], [0, 0]]], []] },
+        { type: 'MultiPoint', coordinates: [[0, 0], [NaN, 1]] },
+      ]) {
+        expect(() => engine.load(encode(geometry))).toThrow()
+        const valid = engine.load(encode({ type: 'Point', coordinates: [1, 2] }))
+        expect(decode(engine.read(valid))).toMatchObject({ geometry: { coordinates: [1, 2] } })
+        engine.release(valid)
+        expect(JSON.parse(engine.stats())).toMatchObject({ active: 0, allocated: 0 })
+      }
+      const polygon = engine.load(encode({ type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] }))
+      expect(() => engine.execute_unary(0x10, polygon, NaN)).toThrow('finite')
+      expect(engine.execute_measure(0x01, polygon)).toBeCloseTo(0.5)
+      engine.release(polygon)
+    } finally { engine.free() }
+  })
   it('imports JS GeoJSON, operates, exports Features, and reuses released slots', () => {
     const engine = new Engine()
     try {

@@ -41,6 +41,11 @@ The browser smoke page is a repeatable manual suite at /tests/browser-smoke.html
 
 ## Continuing priorities
 
+### Second audit implementation — 2026-10-09
+
+- Import now rejects non-finite XY coordinates, short/open/zero-area polygon rings and empty MultiPolygon members before unsafe indexing or buffering. Direct Rust buffering also validates geometry and finite distance. Empty multi-geometries remain supported. These are structural/numeric checks, not a complete polygon topology validator.
+- Real generated-WASM regression verifies that failed imports and NaN buffer distances leave the same Engine usable, with unchanged arena state; native text/MessagePack regressions and mixed-valid/NaN bbox coverage are included.
+
 1. **Coordinate and unit contract.** Measurements and polygon buffering are planar; the current buffer unit argument and Vue units option do not perform geodesic conversion. Define explicit Cartesian versus WGS84 semantics and add metric-buffer reference cases before expanding the API.
 2. **Input validation and resource bounds.** Audit malformed/empty polygon rings, non-finite coordinates, grid cell sizes and unbounded output growth; add failure tests before changing rejection rules. Arena budgets estimate geometry storage rather than all WASM allocations.
 3. **Grid accuracy and performance.** Voronoi uses a sampled approximation; isolines use a simple triangulation and disconnected segments; hex spacing/side-length semantics need mathematical reference tests. Exact tessellation/interpolation should preserve a clear API contract.

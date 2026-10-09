@@ -52,7 +52,7 @@ fn pos_slice_to_points(pts: &[Position]) -> Vec<Point> {
 }
 
 fn geojson_geom_to_geometry(g: &geojson::Geometry) -> Result<Geometry, GeoError> {
-    match &g.value {
+    let geom = match &g.value {
         Gv::Point { coordinates: p } => Ok(Geometry::Point(pos_to_point(p))),
         Gv::MultiPoint { coordinates: pts } => {
             Ok(Geometry::MultiPoint(MultiPoint { points: pts.iter().map(pos_to_point).collect() }))
@@ -75,17 +75,23 @@ fn geojson_geom_to_geometry(g: &geojson::Geometry) -> Result<Geometry, GeoError>
         Gv::MultiPolygon { coordinates: polys } => Ok(Geometry::MultiPolygon(MultiPolygon {
             polygons: polys
                 .iter()
-                .map(|rings| Polygon {
-                    exterior: LineString { coords: pos_slice_to_points(&rings[0]) },
-                    interiors: rings[1..].iter().map(|r| LineString { coords: pos_slice_to_points(r) }).collect(),
+                .map(|rings| {
+                    let exterior =
+                        rings.first().ok_or_else(|| GeoError::InvalidGeometry("empty polygon member".into()))?;
+                    Ok(Polygon {
+                        exterior: LineString { coords: pos_slice_to_points(exterior) },
+                        interiors: rings[1..].iter().map(|r| LineString { coords: pos_slice_to_points(r) }).collect(),
+                    })
                 })
-                .collect(),
+                .collect::<Result<Vec<_>, GeoError>>()?,
         })),
         Gv::GeometryCollection { geometries: gc } => {
             let geoms: Result<Vec<_>, _> = gc.iter().map(geojson_geom_to_geometry).collect();
             Ok(Geometry::GeometryCollection(geoms?))
         }
-    }
+    }?;
+    crate::validation::validate_geometry(&geom)?;
+    Ok(geom)
 }
 
 fn point_to_pos(p: &Point) -> Position {
@@ -190,5 +196,26 @@ mod tests {
         let back = from_msgpack(&bytes).unwrap();
         let json = to_geojson(&back).unwrap();
         assert!(json.contains("Polygon"));
+    }
+
+    #[test]
+    fn rejects_malformed_rings_in_text_and_binary() {
+        let cases = [
+            serde_json::json!({"type":"Polygon","coordinates":[[]]}),
+            serde_json::json!({"type":"Polygon","coordinates":[[[0,0],[1,0],[0,0]]]}),
+            serde_json::json!({"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,1]]]}),
+            serde_json::json!({"type":"MultiPolygon","coordinates":[[[[0,0],[1,0],[1,1],[0,0]]],[]]}),
+        ];
+        for value in cases {
+            assert!(from_geojson(&value.to_string()).is_err(), "accepted {value}");
+            assert!(from_msgpack(&rmp_serde::to_vec_named(&value).unwrap()).is_err(), "accepted {value}");
+        }
+    }
+
+    #[test]
+    fn rejects_nonfinite_msgpack_coordinates() {
+        let geom =
+            Geometry::MultiPoint(MultiPoint { points: vec![Point { x: 0.0, y: 0.0 }, Point { x: f64::NAN, y: 1.0 }] });
+        assert!(from_msgpack(&to_msgpack(&geom).unwrap()).is_err());
     }
 }

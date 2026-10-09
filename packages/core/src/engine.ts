@@ -187,6 +187,7 @@ function forEachCoord(geom: unknown, fn: (c: [number, number]) => void): void {
 export function computeBBox(geom: unknown): { minX: number; minY: number; maxX: number; maxY: number } {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
   forEachCoord(geom, ([x, y]) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('Coordinates must be finite')
     if (x < minX) minX = x; if (y < minY) minY = y
     if (x > maxX) maxX = x; if (y > maxY) maxY = y
   })

@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { computeBBox } from '../engine'
 
 describe('computeBBox', () => {
+  it('rejects invalid coordinates even among valid positions', () => {
+    for (const x of [NaN, Infinity, -Infinity]) {
+      expect(() => computeBBox({ type: 'MultiPoint', coordinates: [[0, 0], [x, 1], [2, 2]] })).toThrow('finite')
+    }
+  })
   it('unwraps Features and FeatureCollections including null geometries', () => {
     expect(computeBBox({ type: 'FeatureCollection', features: [
       { type: 'Feature', geometry: null },
