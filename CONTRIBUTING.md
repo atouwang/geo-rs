@@ -29,7 +29,7 @@ pnpm typecheck
 pnpm build
 ```
 
-pnpm test runs SDK tests, real WASM transport tests, Vue concurrency/rendering tests and benchmark-gate tests. It requires the generated WASM package. Lint checks both TypeScript and Vue SFCs; build includes the core library, Vue library and site.
+pnpm test runs SDK tests, real WASM transport tests, Vue concurrency/rendering tests and benchmark-gate tests. It requires the generated WASM package. Lint checks TypeScript, Vue SFCs and CI test/tooling scripts; build includes the core library, Vue library and site.
 
 With pnpm dev running, open http://127.0.0.1:5173/tests/browser-smoke.html and run the browser suite. It covers actual dedicated/shared workers, stateless APIs, reference cleanup and client memory-budget isolation. Also check the Playground success, failure, recovery and route-unmount states. Recheck production output using vite preview after pnpm build.
 
@@ -40,7 +40,16 @@ pnpm --filter @geo-rs/site build:browser
 pnpm --filter @geo-rs/site exec vite preview --outDir dist/browser --host 127.0.0.1
 ```
 
-Open /tests/browser-smoke.html and /tests/browser-vue.html at the preview URL and click their run buttons. The suites are built/linted/typechecked, but browser execution remains manual in CI.
+Open /tests/browser-smoke.html and /tests/browser-vue.html at the preview URL and click their run buttons. To execute the same packaged pages automatically:
+
+```sh
+pnpm exec playwright install chromium
+pnpm test:browser
+```
+
+Playwright starts and stops its own production preview on port 4187; an occupied port fails explicitly. Both suites run twice in fresh Chromium contexts, checking all 11 behavioral groups and rejecting page errors or unexpected console errors/warnings. The Vue pixel fixture may emit Chromium's exact Canvas2D repeated-readback performance advisory; that single known test-instrumentation notice is retained in attachments without failing the suite. Each suite catches operation failures in its UI, so the runner verifies the final ALL PASSED marker and exact check count rather than relying on page load or process completion. Run pnpm exec playwright show-report target/browser-tests/report to inspect reports. Failures retain screenshots and traces under target/browser-tests/.
+
+CI runs these checks on push/PR/manual dispatch with a Rust release WASM build (--no-opt skips Binaryen). It installs Chromium with system dependencies and uploads reports for 14 days. Current automation covers Chromium; other browser engines and Playground route interactions remain separate checks. See [Playwright CI guidance](https://playwright.dev/docs/ci).
 
 ## Production and benchmarks
 

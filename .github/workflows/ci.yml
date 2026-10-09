@@ -53,7 +53,7 @@ jobs:
         with:
           tool: wasm-pack
       - name: Build WASM package
-        run: wasm-pack build --dev --target web crates/geo-wasm
+        run: wasm-pack build --release --no-opt --target web crates/geo-wasm
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
@@ -68,8 +68,18 @@ jobs:
         run: pnpm lint
       - name: Build SDK, Vue and site
         run: pnpm build
-      - name: Build packaged browser regression pages
-        run: pnpm --filter @geo-rs/site build:browser
+      - name: Install Chromium and system dependencies
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+      - name: Test packaged SDK and Vue in Chromium
+        run: pnpm test:browser
+      - name: Upload browser regression reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-regressions-${{ github.sha }}
+          path: target/browser-tests/
+          if-no-files-found: warn
+          retention-days: 14
 
   bench:
     name: Benchmarks (regression check)

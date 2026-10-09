@@ -21,6 +21,7 @@ function paintCount() {
 function check(value: unknown, message: string): asserts value { if (!value) throw new Error(message) }
 button.onclick = async () => {
   button.disabled = true
+  output.textContent = 'Running'
   const passed: string[] = []
   try {
     state.width = 800; state.geometry = structuredClone(donut); await nextTick()

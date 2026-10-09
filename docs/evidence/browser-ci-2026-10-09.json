@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-09",
+  "base_commit": "b4799ebb4a4567a24d6c1099ccb49b7636a24761",
+  "candidate_checkout_dirty": true,
+  "platform": "Windows",
+  "node": "v25.2.1",
+  "playwright": "1.64.0",
+  "browser": "Chromium 156.0.8078.4",
+  "wasm_sha256": "40f728dfcf37ac40e0665668c05e6cda541d3ca67dfd3dfa6e4955dbbd454156",
+  "wasm_bytes": 735709,
+  "normal_run": {
+    "command": "pnpm exec playwright test",
+    "exit_code": 0,
+    "stats": {
+      "startTime": "2026-10-09T06:31:49.563Z",
+      "duration": 5974.484,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "suite_count": 2,
+    "iterations_per_suite": 2,
+    "behavioral_groups_per_iteration": 11
+  },
+  "fault_injection": {
+    "method": "Untracked test copy injects a throwing Worker constructor before page startup; packaged production files unchanged",
+    "error": "injected worker startup failure",
+    "exit_code": 1,
+    "assertion": "FAIL output rejects the expected ALL PASSED marker",
+    "screenshot_and_trace_saved": true
+  },
+  "additional_checks": [
+    "75 SDK/Vue/tooling tests",
+    "pnpm typecheck",
+    "pnpm lint including CI scripts",
+    "pnpm build",
+    "pnpm install --frozen-lockfile --ignore-scripts",
+    "workflow YAML validation",
+    "both packaged suites pass in the Codex in-app browser"
+  ],
+  "limitations": [
+    "Correctness gate only; no browser performance improvement measured",
+    "Chromium only; other browser engines and Playground route coverage remain separate",
+    "Exact Canvas2D repeated-readback advisory from pixel instrumentation retained as an allowed notice"
+  ]
+}
