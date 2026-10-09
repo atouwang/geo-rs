@@ -34,6 +34,7 @@ const metadata = {
   threshold_percent: regressionThresholdPercent, confidence_level: 0.95,
   same_harness: true, started_at: new Date().toISOString(),
   harness_sha256: createHash('sha256').update(readFileSync(join(root, 'benches/rust/core_ops.rs'))).digest('hex'),
+  lockfile_sha256: createHash('sha256').update(readFileSync(join(root, 'Cargo.lock'))).digest('hex'),
   pairing: 'per-case, alternating order', confirmation_order: 'reverse initial pair order',
 }
 json('metadata.json', metadata)
@@ -77,6 +78,10 @@ try {
   for (const file of ['core_ops.rs', 'Cargo.toml', 'lib.rs']) {
     copyFileSync(join(root, 'benches/rust', file), join(baselineRoot, 'benches/rust', file))
   }
+  // A new harness dependency also changes geo-bench's entry in Cargo.lock.
+  // Pin the same resolved dependencies for both builds; --locked still rejects
+  // incompatibility with the baseline implementation's own manifests.
+  copyFileSync(join(root, 'Cargo.lock'), join(baselineRoot, 'Cargo.lock'))
   // Compile both first. Interleave the two implementations per case rather
   // than separating full suites by minutes of compilation/thermal drift.
   const buildArgs = ['bench', '--locked', '-p', 'geo-bench', '--bench', 'core_ops', '--no-run']

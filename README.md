@@ -70,7 +70,7 @@ pnpm build
 
 Tests include JavaScript-to-real-WASM transport, handle lifetimes, worker failures, Vue concurrency/rendering and benchmark-gate validation. CI also runs both packaged browser suites twice in Chromium. Locally, install Chromium with pnpm exec playwright install chromium, then run pnpm test:browser. For interactive checks, run the site and open /tests/browser-smoke.html and /tests/browser-vue.html; see [CONTRIBUTING.md](CONTRIBUTING.md) for preview commands and failure reports.
 
-Native performance CI compares 16 workloads with a baseline commit on the same runner for push/PR/manual runs. Confirmed regressions fail the workflow, and measurements/logs are uploaded. Run pnpm bench -- HEAD^ locally; see [PERFORMANCE.md](docs/PERFORMANCE.md) for thresholds, reproduction and measurement boundaries.
+Native performance CI compares 18 workloads, including arena storage and deduplication, with a baseline commit on the same runner for push/PR/manual runs. Confirmed regressions fail the workflow, and measurements/logs are uploaded. Run pnpm bench -- HEAD^ locally; see [PERFORMANCE.md](docs/PERFORMANCE.md) for thresholds, reproduction and measurement boundaries.
 
 ## License
 

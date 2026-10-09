@@ -3,5 +3,6 @@
   "contains_point", "union_two_squares", "rtree_search_10k", "parse_geojson",
   "parse_geojson_10k", "parse_msgpack_10k", "export_msgpack_10k",
   "rtree_build_10k", "rtree_search_10k_hits", "voronoi_100pts",
-  "voronoi_1000pts", "hex_grid_beijing"
+  "voronoi_1000pts", "hex_grid_beijing",
+  "arena_store_release_10k", "arena_dedup_10k"
 ]

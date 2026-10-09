@@ -36,16 +36,15 @@ impl MemoryArena {
         }
     }
 
-    fn hash_geom(geom: &Geometry) -> Result<u64, GeoError> {
-        use std::hash::{Hash, Hasher};
-        let bytes = rmp_serde::to_vec(geom).map_err(|e| GeoError::SerializationError(e.to_string()))?;
+    fn hash_geom(geom: &Geometry) -> u64 {
+        use std::hash::Hasher;
         let mut h = std::collections::hash_map::DefaultHasher::new();
-        bytes.hash(&mut h);
-        Ok(h.finish())
+        hash_geometry(geom, &mut h);
+        h.finish()
     }
 
     pub fn store(&mut self, geom: Geometry) -> Result<u64, GeoError> {
-        let hash = Self::hash_geom(&geom)?;
+        let hash = Self::hash_geom(&geom);
 
         if let Some(candidates) = self.dedup.get(&hash) {
             for &existing_handle in candidates {
@@ -149,6 +148,62 @@ pub struct ArenaStats {
     pub total_references: u32,
     pub total_allocated: u64,
     pub max_memory: u64,
+}
+
+// Hash coordinates and structure directly, avoiding a serialized geometry-sized
+// temporary buffer. Normalize signed zero to match Geometry's f64 PartialEq.
+fn hash_geometry(geom: &Geometry, h: &mut impl std::hash::Hasher) {
+    use std::hash::Hash;
+    std::mem::discriminant(geom).hash(h);
+    match geom {
+        Geometry::Point(point) => hash_point(point, h),
+        Geometry::MultiPoint(points) => hash_points(&points.points, h),
+        Geometry::LineString(line) => hash_points(&line.coords, h),
+        Geometry::MultiLineString(lines) => {
+            lines.lines.len().hash(h);
+            for line in &lines.lines {
+                hash_points(&line.coords, h);
+            }
+        }
+        Geometry::Polygon(polygon) => hash_polygon(polygon, h),
+        Geometry::MultiPolygon(polygons) => {
+            polygons.polygons.len().hash(h);
+            for polygon in &polygons.polygons {
+                hash_polygon(polygon, h);
+            }
+        }
+        Geometry::GeometryCollection(geometries) => {
+            geometries.len().hash(h);
+            for geometry in geometries {
+                hash_geometry(geometry, h);
+            }
+        }
+    }
+}
+
+fn hash_point(point: &geo_core::types::Point, h: &mut impl std::hash::Hasher) {
+    use std::hash::Hash;
+    for coordinate in [point.x, point.y] {
+        let bits = if coordinate == 0.0 { 0 } else { coordinate.to_bits() };
+        bits.hash(h);
+    }
+}
+
+fn hash_points(points: &[geo_core::types::Point], h: &mut impl std::hash::Hasher) {
+    use std::hash::Hash;
+    points.len().hash(h);
+    for point in points {
+        hash_point(point, h);
+    }
+}
+
+fn hash_polygon(polygon: &geo_core::types::Polygon, h: &mut impl std::hash::Hasher) {
+    use std::hash::Hash;
+    hash_points(&polygon.exterior.coords, h);
+    polygon.interiors.len().hash(h);
+    for ring in &polygon.interiors {
+        hash_points(&ring.coords, h);
+    }
 }
 
 fn estimate_size(geom: &Geometry) -> u64 {
@@ -267,5 +322,81 @@ mod tests {
         assert_eq!(arena.stats().active_geometries, 1);
         arena.remove(h).unwrap();
         assert!(arena.store(Geometry::Point(Point { x: 3.0, y: 4.0 })).is_ok());
+    }
+
+    #[test]
+    fn signed_zero_deduplicates_at_full_budget() {
+        let mut arena = MemoryArena::new(Some(32));
+        let first = arena.store(Geometry::Point(Point { x: -0.0, y: 0.0 })).unwrap();
+        let duplicate = arena.store(Geometry::Point(Point { x: 0.0, y: -0.0 })).unwrap();
+        assert_eq!(first, duplicate);
+        assert_eq!(arena.stats().total_references, 2);
+        assert_eq!(arena.stats().total_allocated, 32);
+        arena.remove(first).unwrap();
+        assert!(arena.get(duplicate).is_ok());
+        arena.remove(duplicate).unwrap();
+        assert_eq!(arena.stats().active_geometries, 0);
+        assert_eq!(arena.stats().total_allocated, 0);
+    }
+
+    #[test]
+    fn signed_zero_deduplicates_all_geometry_variants() {
+        use geo_core::types::{LineString, MultiLineString, MultiPoint, MultiPolygon, Polygon};
+        fn fixtures(zero: f64) -> Vec<Geometry> {
+            let p = Point { x: zero, y: zero };
+            let line = LineString { coords: vec![p, Point { x: 1.0, y: 1.0 }] };
+            let polygon = Polygon {
+                exterior: LineString { coords: vec![p, Point { x: 1.0, y: 0.0 }, Point { x: 1.0, y: 1.0 }, p] },
+                interiors: vec![],
+            };
+            vec![
+                Geometry::Point(p),
+                Geometry::MultiPoint(MultiPoint { points: vec![p] }),
+                Geometry::LineString(line.clone()),
+                Geometry::MultiLineString(MultiLineString { lines: vec![line] }),
+                Geometry::Polygon(polygon.clone()),
+                Geometry::MultiPolygon(MultiPolygon { polygons: vec![polygon] }),
+                Geometry::GeometryCollection(vec![Geometry::GeometryCollection(vec![Geometry::Point(p)])]),
+            ]
+        }
+        let mut arena = MemoryArena::new(None);
+        let mut handles = Vec::new();
+        for (positive, negative) in fixtures(0.0).into_iter().zip(fixtures(-0.0)) {
+            assert_eq!(positive, negative);
+            let first = arena.store(positive).unwrap();
+            let duplicate = arena.store(negative).unwrap();
+            assert_eq!(first, duplicate);
+            handles.push(first);
+        }
+        assert_eq!(arena.stats().active_geometries, 7);
+        assert_eq!(arena.stats().total_references, 14);
+        for handle in handles {
+            arena.remove(handle).unwrap();
+            arena.remove(handle).unwrap();
+        }
+        assert_eq!(arena.stats().total_allocated, 0);
+    }
+
+    #[test]
+    fn hash_collision_keeps_distinct_geometries_and_reference_ownership() {
+        let mut arena = MemoryArena::new(None);
+        let first = arena.store(Geometry::Point(Point { x: 1.0, y: 2.0 })).unwrap();
+        let second_geom = Geometry::Point(Point { x: 3.0, y: 4.0 });
+        let second_hash = MemoryArena::hash_geom(&second_geom);
+        // Force a collision to exercise equality checks and bucket cleanup.
+        let slot = arena.slots[arena.handles[&first]].as_mut().unwrap();
+        arena.dedup.remove(&slot.hash);
+        slot.hash = second_hash;
+        arena.dedup.insert(second_hash, vec![first]);
+        let second = arena.store(second_geom.clone()).unwrap();
+        assert_ne!(first, second);
+        assert_eq!(arena.store(second_geom.clone()).unwrap(), second);
+        arena.remove(first).unwrap();
+        arena.remove(second).unwrap();
+        assert_eq!(arena.get(second).unwrap(), &second_geom);
+        assert_eq!(arena.stats().total_references, 1);
+        arena.remove(second).unwrap();
+        assert!(arena.dedup.is_empty());
+        assert_eq!(arena.stats().total_allocated, 0);
     }
 }

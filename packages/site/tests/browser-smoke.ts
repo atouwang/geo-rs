@@ -25,6 +25,22 @@ button.onclick = async () => {
       engine.free(duplicate)
     }
     check((await engine.stats()).active === 0, 'dedicated arena leaked')
+    for (const geometry of [
+      { type: 'MultiPoint', coordinates: [[0,0],[1,1]] },
+      { type: 'LineString', coordinates: [[0,0],[1,1]] },
+      { type: 'MultiLineString', coordinates: [[[0,0],[1,1]]] },
+      polygon,
+      { type: 'MultiPolygon', coordinates: [polygon.coordinates] },
+      { type: 'GeometryCollection', geometries: [{ type: 'GeometryCollection', geometries: [point] }] },
+    ] as GeoJSON[]) {
+      const first = await engine.load(geometry)
+      const duplicate = await engine.load(geometry)
+      check(first === duplicate, 'geometry variant deduplication failed')
+      engine.free(first)
+      check((await engine.read(duplicate)).type === 'Feature', 'geometry variant reference invalid')
+      engine.free(duplicate)
+    }
+    check((await engine.stats()).active === 0, 'geometry variant arena leaked')
     passed.push('PASS dedicated worker: repeated imports, deduplication, export and release')
 
     for (const invalid of [

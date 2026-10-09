@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use geo_core::convert::from_geojson;
 use geo_core::types::*;
 
@@ -128,6 +128,36 @@ fn bench_grids(c: &mut Criterion) {
     });
 }
 
+fn bench_arena(c: &mut Criterion) {
+    let geom = load_sample_points(10_000);
+    let mut arena = geo_bench::arena::MemoryArena::new(None);
+    c.bench_function("arena_store_release_10k", |b| {
+        b.iter_batched(
+            || geom.clone(),
+            |input| {
+                let handle = arena.store(black_box(input)).unwrap();
+                arena.remove(handle).unwrap();
+            },
+            BatchSize::LargeInput,
+        )
+    });
+    assert_eq!(arena.stats().active_geometries, 0);
+    let original = arena.store(geom.clone()).unwrap();
+    c.bench_function("arena_dedup_10k", |b| {
+        b.iter_batched(
+            || geom.clone(),
+            |input| {
+                let duplicate = arena.store(black_box(input)).unwrap();
+                assert_eq!(duplicate, original);
+                arena.remove(duplicate).unwrap();
+            },
+            BatchSize::LargeInput,
+        )
+    });
+    arena.remove(original).unwrap();
+    assert_eq!(arena.stats().total_allocated, 0);
+}
+
 criterion_group!(
     benches,
     bench_area,
@@ -140,5 +170,6 @@ criterion_group!(
     bench_load_geojson,
     bench_large_geometry,
     bench_grids,
+    bench_arena,
 );
 criterion_main!(benches);

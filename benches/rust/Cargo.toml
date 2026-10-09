@@ -20,3 +20,4 @@ geo-index = { path = "../../crates/geo-index" }
 geo-grid = { path = "../../crates/geo-grid" }
 criterion.workspace = true
 serde_json.workspace = true
+rmp-serde.workspace = true

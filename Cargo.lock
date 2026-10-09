@@ -348,6 +348,7 @@ dependencies = [
  "geo-grid",
  "geo-index",
  "geo-set",
+ "rmp-serde",
  "serde_json",
 ]
 

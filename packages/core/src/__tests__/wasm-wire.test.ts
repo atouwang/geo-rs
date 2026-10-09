@@ -8,6 +8,22 @@ beforeAll(() => {
 })
 
 describe('real WASM and JavaScript wire format', () => {
+  it('deduplicates signed-zero coordinates even with a full memory budget', () => {
+    const engine = new Engine(32n)
+    try {
+      // Force floating-point encoding so MessagePack preserves the sign of zero.
+      const data = encode({ type: 'Point', coordinates: [-0, 0] }, { forceIntegerToFloat: true })
+      expect(Object.is((decode(data) as { coordinates: number[] }).coordinates[0], -0)).toBe(true)
+      const first = engine.load(data)
+      const duplicate = engine.load(encode({ type: 'Point', coordinates: [0, -0] }, { forceIntegerToFloat: true }))
+      expect(duplicate).toBe(first)
+      expect(JSON.parse(engine.stats())).toMatchObject({ active: 1, refs: 2, allocated: 32 })
+      engine.release(first)
+      expect(decode(engine.read(duplicate))).toMatchObject({ type: 'Feature' })
+      engine.release(duplicate)
+      expect(JSON.parse(engine.stats())).toMatchObject({ active: 0, refs: 0, allocated: 0 })
+    } finally { engine.free() }
+  })
   it('bounds Voronoi output and preserves input after invalid bounds', () => {
     const engine = new Engine()
     try {
