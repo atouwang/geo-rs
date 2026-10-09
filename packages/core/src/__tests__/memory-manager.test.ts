@@ -56,4 +56,15 @@ describe('MemoryManager', () => {
     mm.free(1n)
     expect(mm.stats()).toEqual({ active: 0, freed: 1, total: 1 })
   })
+
+  it('bounds released-handle history while preserving active references', () => {
+    mm.register(1n); mm.register(1n)
+    for (let h = 2n; h <= 100001n; h++) { mm.register(h); mm.free(h) }
+    expect(mm.stats()).toEqual({ active: 1, freed: 1024, total: 1025 })
+    expect(() => mm.validate(2n)).toThrow('not found')
+    expect(() => mm.validate(100001n)).toThrow('already freed')
+    mm.free(1n); expect(mm.isActive(1n)).toBe(true)
+    mm.free(1n); expect(mm.isActive(1n)).toBe(false)
+    mm.register(100001n); expect(() => mm.validate(100001n)).not.toThrow()
+  })
 })
