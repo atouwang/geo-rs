@@ -15,6 +15,7 @@ describe('real WASM and JavaScript wire format', () => {
         const polygon = { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]] }
         const h = engine.load(encode(polygon))
         expect(engine.execute_measure(0x01, h)).toBeCloseTo(1)
+        expect(JSON.parse(engine.bbox(h))).toEqual({ min_x: 0, min_y: 0, max_x: 1, max_y: 1 })
         const centroid = engine.execute_unary(0x03, h, 0)
         expect(decode(engine.read(centroid))).toMatchObject({
           type: 'Feature', geometry: { type: 'Point', coordinates: [0.5, 0.5] },

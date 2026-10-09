@@ -48,6 +48,10 @@ impl Engine {
         self.inner.execute_measure(op_code, handle).map_err(|e| JsValue::from_str(&e))
     }
 
+    pub fn bbox(&self, handle: u64) -> Result<String, JsValue> {
+        self.inner.bbox_json(handle).map_err(|e| JsValue::from_str(&e))
+    }
+
     pub fn points_within(&self, pts_handle: u64, poly_handle: u64) -> Result<String, JsValue> {
         let indices = self.inner.points_within(pts_handle, poly_handle).map_err(|e| JsValue::from_str(&e))?;
         Ok(serde_json::to_string(&indices).unwrap_or_else(|_| "[]".into()))

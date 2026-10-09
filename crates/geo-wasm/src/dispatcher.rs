@@ -64,6 +64,12 @@ impl WasmEngine {
         dispatch_measure(op_code, geom)
     }
 
+    pub fn bbox_json(&self, handle: u64) -> Result<String, String> {
+        let geom = self.arena.get(handle).map_err(|e| e.to_string())?;
+        let bbox = geo_core::measure::bbox(geom).ok_or_else(|| "bbox undefined for empty geometry".to_string())?;
+        serde_json::to_string(&bbox).map_err(|e| e.to_string())
+    }
+
     pub fn free(&mut self, handle: u64) -> Result<(), String> {
         self.arena.remove(handle).map_err(|e| e.to_string())
     }
@@ -167,7 +173,22 @@ fn transform_geom(geom: &Geometry, from: geo_core::types::CoordSystem, to: geo_c
         Geometry::MultiPoint(mp) => Geometry::MultiPoint(MultiPoint {
             points: mp.points.iter().map(|p| transform_coords(p, from, to)).collect(),
         }),
-        other => other.clone(),
+        Geometry::MultiPolygon(mp) => Geometry::MultiPolygon(MultiPolygon {
+            polygons: mp.polygons.iter().map(|p| transform_polygon(p, from, to)).collect(),
+        }),
+        Geometry::GeometryCollection(gc) => {
+            Geometry::GeometryCollection(gc.iter().map(|g| transform_geom(g, from, to)).collect())
+        }
+    }
+}
+
+fn transform_polygon(polygon: &Polygon, from: CoordSystem, to: CoordSystem) -> Polygon {
+    let transform_ring = |ring: &LineString| LineString {
+        coords: ring.coords.iter().map(|p| geo_core::coords::transform_coords(p, from, to)).collect(),
+    };
+    Polygon {
+        exterior: transform_ring(&polygon.exterior),
+        interiors: polygon.interiors.iter().map(transform_ring).collect(),
     }
 }
 
@@ -247,6 +268,34 @@ mod tests {
         let bytes = e.read_bytes(h).unwrap();
         let geom = geo_core::convert::from_msgpack(&bytes).unwrap();
         assert!(matches!(geom, Geometry::Point(_)));
+    }
+
+    #[test]
+    fn test_bbox_without_exporting_geometry() {
+        let mut e = WasmEngine::new(None);
+        let h = e.load_bytes(&encode(&square_geom())).unwrap();
+        let bounds: serde_json::Value = serde_json::from_str(&e.bbox_json(h).unwrap()).unwrap();
+        assert_eq!(bounds, serde_json::json!({"min_x": 0.0, "min_y": 0.0, "max_x": 1.0, "max_y": 1.0}));
+        let empty = e.arena.store(Geometry::GeometryCollection(vec![])).unwrap();
+        assert!(e.bbox_json(empty).is_err());
+        assert!(e.bbox_json(0).is_err());
+    }
+
+    #[test]
+    fn test_transform_nested_multipolygon() {
+        let Geometry::Polygon(polygon) = square_geom() else { unreachable!() };
+        let original = Geometry::GeometryCollection(vec![Geometry::GeometryCollection(vec![Geometry::MultiPolygon(
+            MultiPolygon { polygons: vec![polygon] },
+        )])]);
+        let mut e = WasmEngine::new(None);
+        let h = e.arena.store(original).unwrap();
+        let projected = e.transform_coords(h, 0, 1).unwrap();
+        let bounds: serde_json::Value = serde_json::from_str(&e.bbox_json(projected).unwrap()).unwrap();
+        assert!(bounds["max_x"].as_f64().unwrap() > 100_000.0);
+        let back = e.transform_coords(projected, 1, 0).unwrap();
+        let bounds: serde_json::Value = serde_json::from_str(&e.bbox_json(back).unwrap()).unwrap();
+        assert!((bounds["max_x"].as_f64().unwrap() - 1.0).abs() < 1e-8);
+        assert!((bounds["max_y"].as_f64().unwrap() - 1.0).abs() < 1e-8);
     }
     #[test]
     fn test_area() {

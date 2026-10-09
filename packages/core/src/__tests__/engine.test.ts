@@ -87,4 +87,12 @@ describe('GeoEngine handle lifecycle', () => {
     await expect(pending).rejects.toThrow('cleared')
     expect(engine.getHandleStats().active).toBe(0)
   })
+
+  it('computes bbox in WASM without exporting the geometry', async () => {
+    const engine = await GeoEngine.init()
+    const h = await engine.load(point)
+    mock.call.mockResolvedValue('{"min_x":1,"min_y":2,"max_x":3,"max_y":4}')
+    expect(await engine.bbox(h)).toEqual({ minX: 1, minY: 2, maxX: 3, maxY: 4 })
+    expect(mock.call).not.toHaveBeenCalledWith('read', [h])
+  })
 })

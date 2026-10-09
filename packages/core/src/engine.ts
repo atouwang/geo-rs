@@ -76,8 +76,9 @@ export class GeoEngine {
   }
 
   async bbox(handle: bigint): Promise<{ minX: number; minY: number; maxX: number; maxY: number }> {
-    const geom = await this.read(handle)
-    return computeBBox(geom)
+    const json = await this.call('bbox', [handle]) as string
+    const bounds = JSON.parse(json) as { min_x: number; min_y: number; max_x: number; max_y: number }
+    return { minX: bounds.min_x, minY: bounds.min_y, maxX: bounds.max_x, maxY: bounds.max_y }
   }
 
   async contains(a: bigint, b: bigint): Promise<boolean> {
@@ -145,7 +146,7 @@ export class GeoEngine {
       ? args.slice(1, 3)
       : method === 'execute_unary' || method === 'execute_measure'
         ? args.slice(1, 2)
-        : method === 'read' || method === 'voronoi' ? args.slice(0, 1) : []
+        : method === 'read' || method === 'voronoi' || method === 'bbox' ? args.slice(0, 1) : []
     for (const handle of handles) this.memory.validate(handle as bigint)
     const result = await this.worker.call(method, args)
     if (revision !== this.memoryRevision) throw new Error('Engine memory was cleared while the operation was in flight')

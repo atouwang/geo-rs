@@ -8,10 +8,10 @@ export interface EngineConfig {
   /** Memory limit for the WASM arena in bytes (default: 256MB) */
   memoryLimit?: number
   /** Custom URL for the WASM engine worker */
-  workerUrl?: string
-  /** HTMLCanvasElement to transfer as OffscreenCanvas to worker */
+  workerUrl?: string | URL
+  /** Reserved for future OffscreenCanvas rendering; currently rejected. */
   canvas?: HTMLCanvasElement
-  /** Use SharedWorker instead of DedicatedWorker */
+  /** Share the worker and compiled module, with a separate arena per client. */
   shared?: boolean
 }
 
@@ -22,7 +22,9 @@ export interface WasmEngine {
   execute_binary(op_code: number, handle_a: bigint, handle_b: bigint): bigint
   execute_bool(op_code: number, handle_a: bigint, handle_b: bigint): boolean
   execute_measure(op_code: number, handle: bigint): number
-  free(handle: bigint): void
+  bbox(handle: bigint): string
+  release(handle: bigint): void
+  free(): void
   free_all(): void
   stats(): string
 }

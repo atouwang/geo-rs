@@ -3,7 +3,7 @@ import init, { Engine } from '../../../../crates/geo-wasm/pkg/geo_wasm'
 let initialization: Promise<unknown> | undefined
 const methods = new Set([
   'load', 'read', 'execute_unary', 'execute_binary', 'execute_bool', 'execute_measure',
-  'free', 'free_all', 'stats', 'points_within', 'transform', 'voronoi', 'isolines',
+  'free', 'free_all', 'stats', 'points_within', 'transform', 'voronoi', 'isolines', 'bbox',
 ])
 
 export interface EnginePort {
