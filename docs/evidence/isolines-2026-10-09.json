@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-09",
+  "baseline_commit": "eb50c5ae2e388061c921627e5eddc8e0ef631813",
+  "candidate_provenance": "Recorded before commit from the current tracked worktree; source hashes below identify the candidate.",
+  "baseline_ci": {
+    "run": 37902577986,
+    "head_sha": "eb50c5ae2e388061c921627e5eddc8e0ef631813",
+    "conclusion": "success",
+    "verified_at": "2026-10-09T08:08Z"
+  },
+  "source_sha256": {
+    "crates/geo-grid/src/isolines.rs": {
+      "baseline_sha256": "927b2cbfc7fc46df75d8a533a07993bd562de0ab4f1b6e15730f1e43433c26d3",
+      "candidate_worktree_sha256": "d5701c6f5701059e1112f5b22a3bcaf573ee212086c6554abdf48d13438e3147"
+    },
+    "crates/geo-wasm/src/dispatcher.rs": {
+      "baseline_sha256": "a35700990a281915ad2ec9b68412c856b6076479bedfbcbf703afcd3c2737bab",
+      "candidate_worktree_sha256": "7fb9177b6d3e51aadf4a392223a85ef3a23f2752b9acb1b39c15dfd35f584380"
+    }
+  },
+  "regressions_before_fix": [
+    {
+      "command": "cargo test -p geo-grid isolines::tests",
+      "exit_code": 1,
+      "failures": [
+        "small_value_range_interpolates_at_the_requested_level: expected x+y=0.25; midpoint output was 0.5",
+        "extreme_finite_values_produce_finite_crossings: non-finite point coordinate"
+      ]
+    },
+    {
+      "command": "pnpm --filter @geo-rs/core exec vitest run src/__tests__/wasm-wire.test.ts",
+      "exit_code": 1,
+      "failure": "mismatched values produced an empty stored geometry instead of throwing"
+    }
+  ],
+  "limits": {
+    "max_points": 10000,
+    "max_triangle_level_evaluations": 100000,
+    "work_formula": "max(points.len()-2, 0) * breaks.len(), checked multiplication",
+    "checks": "matching value count; finite XY, values and levels; workload bounds before triangulation/output allocation"
+  },
+  "numerical_changes": [
+    "Remove the absolute 1e-12 midpoint fallback on nonzero value ranges.",
+    "Halve scalar operands before subtracting if their opposite-extreme difference overflows.",
+    "Convex coordinate interpolation and endpoint clamp avoid overflowing coordinate differences.",
+    "Uniformly scale finite coordinates for centroid/angle ordering to avoid sum/difference overflow."
+  ],
+  "allocation_changes": [
+    "WASM dispatcher borrows stored MultiPoint coordinates instead of cloning them.",
+    "Emit LineStrings directly instead of first retaining a per-level segment vector."
+  ],
+  "api": {
+    "rust": "isolines now returns Result<Vec<LineString>, GeoError>; native callers must handle errors.",
+    "wasm": "same method, arguments, output handle and Feature<MultiLineString> shape; invalid input now throws and does not store an empty result."
+  },
+  "verification": {
+    "rust_workspace_tests": 96,
+    "reused_arena_tests_in_benchmark_crate": 12,
+    "sdk_tests": 56,
+    "real_generated_wasm_tests": 9,
+    "vue_tests": 13,
+    "tooling_tests": 10,
+    "chromium_suites": 2,
+    "iterations_per_suite": 2,
+    "gates": [
+      "strict workspace all-target Clippy",
+      "rustfmt check",
+      "workspace WASM target check",
+      "private/public rustdoc",
+      "wasm-pack release --no-opt web build",
+      "typecheck",
+      "lint",
+      "tests",
+      "SDK/Vue/site builds",
+      "pnpm test:browser"
+    ],
+    "in_app_browser": {
+      "page": "packaged /tests/browser-smoke.html",
+      "result": "ALL PASSED",
+      "console_warning_error_logs": [],
+      "scope": "SDK dedicated/shared Worker consumption of rebuilt WASM; isolines operation correctness is verified separately against real WASM in Node."
+    }
+  },
+  "remaining": [
+    "Fan triangulation remains approximate and outputs disconnected segments; no complete contour/Delaunay/topology guarantee.",
+    "Numerically ill-conditioned geometry and scalar inputs still have floating-point precision limits.",
+    "Bounds apply to triangle-level work/output; JSON decoding and overall WASM heap peaks are outside the arena storage estimate.",
+    "No comparative isolines runtime benchmark was run; no measured speedup is claimed. Existing CI native gate covers its other 20 workloads."
+  ]
+}

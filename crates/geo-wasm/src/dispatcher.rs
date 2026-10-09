@@ -126,12 +126,12 @@ impl WasmEngine {
     pub fn isolines_from_pts(&mut self, pts_handle: u64, values_json: &str, breaks_json: &str) -> Result<u64, String> {
         let pts_geom = self.arena.get(pts_handle).map_err(|e| e.to_string())?;
         let pts = match pts_geom {
-            Geometry::MultiPoint(mp) => mp.points.clone(),
+            Geometry::MultiPoint(mp) => &mp.points,
             _ => return Err("isolines requires MultiPoint".to_string()),
         };
         let values: Vec<f64> = serde_json::from_str(values_json).map_err(|e| format!("Invalid values JSON: {}", e))?;
         let breaks: Vec<f64> = serde_json::from_str(breaks_json).map_err(|e| format!("Invalid breaks JSON: {}", e))?;
-        let line_strings = geo_grid::isolines::isolines(&pts, &values, &breaks);
+        let line_strings = geo_grid::isolines::isolines(pts, &values, &breaks).map_err(|e| e.to_string())?;
         let result = Geometry::MultiLineString(MultiLineString { lines: line_strings });
         self.arena.store(result).map_err(|e| e.to_string())
     }

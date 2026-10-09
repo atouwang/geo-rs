@@ -51,6 +51,54 @@ describe('real WASM and JavaScript wire format', () => {
       expect(stats()).toMatchObject({ active: 0, refs: 0, allocated: 0 })
     } finally { engine.free() }
   })
+  it('rejects invalid isolines without allocating output or poisoning the engine', () => {
+    const engine = new Engine()
+    try {
+      const h = engine.load(encode({ type: 'MultiPoint', coordinates: [[0,0],[1,0],[0,1]] }))
+      const before = JSON.parse(engine.stats())
+      expect(() => engine.isolines(h, '[0,1]', '[0.25]')).toThrow('values')
+      expect(JSON.parse(engine.stats())).toEqual(before)
+      for (const [values, breaks] of [
+        ['[0,1,null]', '[0.25]'],
+        ['[0,1,1]', '[null]'],
+        ['[0,1,1]', JSON.stringify(Array.from({ length: 100001 }, () => 0.25))],
+      ]) {
+        expect(() => engine.isolines(h, values, breaks)).toThrow()
+        expect(JSON.parse(engine.stats())).toEqual(before)
+      }
+      const result = engine.isolines(h, '[0,1e-13,1e-13]', '[2.5e-14]')
+      const feature = decode(engine.read(result)) as { geometry: { coordinates: number[][][] } }
+      expect(feature.geometry.coordinates).toHaveLength(1)
+      for (const [x,y] of feature.geometry.coordinates[0]) expect(x+y).toBeCloseTo(0.25, 12)
+      engine.release(result)
+      expect(JSON.parse(engine.stats())).toEqual(before)
+      expect(decode(engine.read(h))).toMatchObject({ geometry: { type: 'MultiPoint' } })
+      engine.release(h)
+      expect(JSON.parse(engine.stats())).toMatchObject({ active: 0, refs: 0, allocated: 0 })
+    } finally { engine.free() }
+  })
+  it('exports finite isoline coordinates for extreme finite inputs', () => {
+    const engine = new Engine()
+    try {
+      for (const [coordinates, expectedX] of [
+        [[[-Number.MAX_VALUE,0],[Number.MAX_VALUE,0],[-Number.MAX_VALUE,1]], 0],
+        [[[Number.MAX_VALUE,0],[Number.MAX_VALUE,0],[Number.MAX_VALUE,1]], Number.MAX_VALUE],
+      ] as [number[][], number][]) {
+        const h = engine.load(encode({ type: 'MultiPoint', coordinates }))
+        const result = engine.isolines(h, JSON.stringify([-Number.MAX_VALUE, Number.MAX_VALUE, -Number.MAX_VALUE]), '[0]')
+        const feature = decode(engine.read(result)) as { geometry: { coordinates: number[][][] } }
+        expect(feature.geometry.coordinates).toHaveLength(1)
+        for (const [x,y] of feature.geometry.coordinates[0]) {
+          expect(x).toBe(expectedX)
+          expect(Number.isFinite(y)).toBe(true)
+          expect(y).toBeGreaterThanOrEqual(0)
+          expect(y).toBeLessThanOrEqual(1)
+        }
+        engine.release(result); engine.release(h)
+        expect(JSON.parse(engine.stats())).toMatchObject({ active: 0, refs: 0, allocated: 0 })
+      }
+    } finally { engine.free() }
+  })
   it('bounds Voronoi output and preserves input after invalid bounds', () => {
     const engine = new Engine()
     try {
