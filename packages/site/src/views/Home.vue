@@ -14,8 +14,8 @@ const features = [
   { title: 'Set Operations', desc: 'Union, intersection, difference, XOR' },
   { title: 'Spatial Predicates', desc: 'All 8 DE-9IM relations' },
   { title: 'Spatial Indexing', desc: 'R*-Tree and KD-Tree' },
-  { title: 'Voronoi & Grids', desc: 'Voronoi, hex, square, triangle grids' },
-  { title: 'Isolines', desc: 'Marching Squares contour extraction' },
+  { title: 'Voronoi & Grids', desc: 'Approximate Voronoi and hex grids (Rust API)' },
+  { title: 'Isolines', desc: 'Contour segments from triangulated samples (Rust API)' },
   { title: 'Coordinate Transforms', desc: 'WGS84, Web Mercator, Cartesian' },
   { title: 'Web Worker + WASM', desc: 'Non-blocking dedicated thread' },
 ]
@@ -24,10 +24,11 @@ const features = [
 <template>
   <section class="hero">
     <h2>Browser-Native Geospatial Analysis</h2>
-    <p>Rust-powered spatial operations compiled to WebAssembly. Drop-in faster alternative to Turf.js.</p>
+    <p>Rust-powered spatial operations compiled to WebAssembly, with a TypeScript SDK.</p>
   </section>
   <section>
-    <h3>Performance Highlights</h3>
+    <h3>Historical Native Rust Measurements</h3>
+    <p>These static measurements exclude browser, Worker and serialization costs. Run the benchmark suite for your environment.</p>
     <div class="bench-grid">
       <div v-for="b in benchData" :key="b.op" class="bench-card">
         <div class="bench-time">{{ b.time }}</div>
@@ -49,10 +50,12 @@ const features = [
     <h3>Quick Start</h3>
     <pre class="code-block"><code>npm install @geo-rs/core
 
-import { buffer, intersect } from '@geo-rs/core'
+import { centroid } from '@geo-rs/core'
 
-const zone = await buffer(cityCenter, { radius: 500, units: 'meters' })
-const overlap = await intersect(zone, buildings)</code></pre>
+const center = await centroid({
+  type: 'Polygon',
+  coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]
+})</code></pre>
   </section>
 </template>
 

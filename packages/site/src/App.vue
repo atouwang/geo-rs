@@ -10,7 +10,7 @@
         <router-link to="/">Home</router-link>
         <router-link to="/benchmarks">Benchmarks</router-link>
         <router-link to="/playground">Playground</router-link>
-        <a href="https://github.com/geo-rs/geo-rs" target="_blank">GitHub</a>
+        <a href="https://github.com/atouwang/geo-rs" target="_blank" rel="noopener noreferrer">GitHub</a>
       </nav>
     </header>
     <main>

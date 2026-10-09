@@ -68,7 +68,6 @@ fn poly_to_geo(p: &Polygon) -> geo_types::Polygon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use geo_core::types::*;
 
     #[test]
     fn test_simplify_line() {

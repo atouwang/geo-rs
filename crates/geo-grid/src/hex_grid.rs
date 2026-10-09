@@ -61,7 +61,7 @@ mod tests {
     fn test_hex_grid_beijing() {
         let bbox = BBox { min_x: 116.0, min_y: 39.5, max_x: 117.0, max_y: 40.5 };
         let grid = hex_grid(&bbox, 5000.0, Units::Meters);
-        assert!(grid.len() > 0);
+        assert!(!grid.is_empty());
         // All hexes should be valid polygons
         for hex in &grid {
             assert!(hex.exterior.coords.len() >= 4);

@@ -1,14 +1,8 @@
 # Architecture Design — geo-rs
 
-## Current Implementation Status (May 2026)
+## Status of this document
 
-All 6 phases delivered. See [IMPLEMENTATION.md](IMPLEMENTATION.md).
-
-Key deviations from original design (intentional):
-- **Transport**: JSON instead of FlatBuffers. `.fbs` schema in repo for future zero-copy upgrade.
-- **No Turf.js fallback**: WASM 97%+ coverage. `WasmNotSupportedError` thrown instead.
-- **No SharedArrayBuffer yet**: postMessage+JSON; SAB+FlatBuffers planned as combined perf upgrade.
-- **No comlink**: manual RPC avoids extra dependency.
+This is the original design proposal. Diagrams, APIs, feature lists and performance targets below describe intended architecture, not the current implementation. The implementation uses MessagePack and transferable ArrayBuffers, a manual RPC protocol, one WASM module and per-client SharedWorker arenas. See [ONBOARDING.md](ONBOARDING.md) and [OPTIMIZATION.md](OPTIMIZATION.md) for the verified current architecture and remaining work.
 
 ## 1. Project Vision
 

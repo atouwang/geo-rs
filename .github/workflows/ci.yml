@@ -22,7 +22,7 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Clippy
-        run: cargo clippy --workspace --exclude geo-wasm -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test (native)
         run: cargo test --workspace --exclude geo-wasm
       - name: Test (geo-wasm)
@@ -57,17 +57,21 @@ jobs:
       - name: Build WASM package
         run: wasm-pack build --dev --target web crates/geo-wasm
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build core (for type declarations)
         run: pnpm --filter @geo-rs/core build
       - name: Type check
         run: pnpm typecheck
+      - name: Test SDK and tooling
+        run: pnpm test
+      - name: Lint TypeScript and Vue
+        run: pnpm lint
+      - name: Build SDK, Vue and site
+        run: pnpm build
 
   bench:
     name: Benchmarks (regression check)
@@ -78,6 +82,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Run benchmarks
+        shell: bash
         run: cargo bench --bench core_ops 2>&1 | tee bench_output.txt
       - name: Compare against baseline
         run: node .github/scripts/bench-compare.mjs < bench_output.txt

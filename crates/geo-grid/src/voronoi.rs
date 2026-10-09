@@ -93,7 +93,7 @@ mod tests {
         let bbox = BBox { min_x: -1.0, min_y: -1.0, max_x: 6.0, max_y: 6.0 };
         let cells = voronoi(&pts, &bbox);
         // 3 input points should produce up to 3 Voronoi cells
-        assert!(cells.len() > 0 && cells.len() <= 3);
+        assert!(!cells.is_empty() && cells.len() <= 3);
         for cell in &cells {
             assert!(cell.exterior.coords.len() >= 4);
         }

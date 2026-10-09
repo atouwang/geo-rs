@@ -6,13 +6,16 @@ echo "[pre-commit] Checking Rust formatting..."
 cargo fmt --all -- --check
 
 echo "[pre-commit] Running Clippy..."
-cargo clippy --workspace --exclude geo-wasm -- -D warnings 2>/dev/null || true
+cargo clippy --workspace --all-targets -- -D warnings
 
 echo "[pre-commit] Running tests..."
-cargo test --workspace --exclude geo-wasm -q 2>/dev/null
-cargo test -p geo-wasm -q 2>/dev/null
+cargo test --workspace -q
 
 echo "[pre-commit] TypeScript typecheck..."
-pnpm typecheck 2>/dev/null || true
+pnpm typecheck
+
+echo "[pre-commit] TypeScript/Vue lint and SDK tests..."
+pnpm lint
+pnpm test
 
 echo "[pre-commit] OK"

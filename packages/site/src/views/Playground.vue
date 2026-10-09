@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { encode, decode } from '@msgpack/msgpack'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { GeoEngine, type GeoJSON } from '@geo-rs/core'
 
 const input = ref('{"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}')
 const operation = ref('area')
@@ -9,8 +9,8 @@ const status = ref('')
 const wasmReady = ref(false)
 const wasmError = ref('')
 const stats = ref('')
-
-let engine: any = null
+let engine: GeoEngine | null = null
+let disposed = false
 
 const examples: Record<string, string> = {
   Square: '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}',
@@ -20,56 +20,57 @@ const examples: Record<string, string> = {
 
 onMounted(async () => {
   try {
-    const wasm = await import('geo-wasm')
-    await wasm.init()
-    engine = new wasm.Engine()
+    const initialized = await GeoEngine.init()
+    if (disposed) { initialized.destroy(); return }
+    engine = initialized
+    stats.value = JSON.stringify(await initialized.stats())
     wasmReady.value = true
-    stats.value = engine.stats()
-  } catch (err) {
-    wasmError.value = err instanceof Error ? err.message : String(err)
+  } catch (error) {
+    if (!disposed) wasmError.value = error instanceof Error ? error.message : String(error)
   }
 })
 
+onUnmounted(() => {
+  disposed = true
+  engine?.destroy()
+  engine = null
+})
+
 async function run() {
-  if (!engine) return
+  const current = engine
+  if (!current || status.value === 'running') return
   status.value = 'running'
   output.value = ''
+  const handles: bigint[] = []
   try {
-    const geom = JSON.parse(input.value)
-    const data = encode(geom)
-    const h = engine.load(data)
-
+    const h = await current.load(JSON.parse(input.value) as GeoJSON)
+    handles.push(h)
+    let result: unknown
     if (operation.value === 'area') {
-      const area = engine.execute_measure(0x01, h)
-      output.value = JSON.stringify({ area }, null, 2)
+      result = { area: await current.area(h) }
     } else if (operation.value === 'length') {
-      const len = engine.execute_measure(0x02, h)
-      output.value = JSON.stringify({ length: len }, null, 2)
-    } else if (operation.value === 'buffer') {
-      const h2 = engine.execute_unary(0x10, h, 0.5)
-      const bytes = engine.read(h2)
-      const result = decode(bytes)
-      output.value = JSON.stringify(result, null, 2)
-      engine.free(h2)
-    } else if (operation.value === 'centroid') {
-      const h2 = engine.execute_unary(0x03, h, 0)
-      const bytes = engine.read(h2)
-      const result = decode(bytes)
-      output.value = JSON.stringify(result, null, 2)
-      engine.free(h2)
-    } else if (operation.value === 'simplify') {
-      const h2 = engine.execute_unary(0x11, h, 0.5)
-      const bytes = engine.read(h2)
-      const result = decode(bytes)
-      output.value = JSON.stringify(result, null, 2)
-      engine.free(h2)
+      result = { length: await current.length(h) }
+    } else {
+      const h2 = operation.value === 'buffer' ? await current.buffer(h, 0.5)
+        : operation.value === 'centroid' ? await current.centroid(h)
+          : await current.simplify(h, 0.5)
+      handles.push(h2)
+      result = await current.read(h2)
     }
-    engine.free(h)
-    stats.value = engine.stats()
-    status.value = 'done'
-  } catch (e) {
-    output.value = JSON.stringify({ error: String(e) }, null, 2)
-    status.value = 'error'
+    if (!disposed) {
+      output.value = JSON.stringify(result, null, 2)
+      status.value = 'done'
+    }
+  } catch (error) {
+    if (!disposed) {
+      output.value = JSON.stringify({ error: String(error) }, null, 2)
+      status.value = 'error'
+    }
+  } finally {
+    current.free(...handles)
+    if (!disposed) {
+      try { stats.value = JSON.stringify(await current.stats()) } catch { /* Worker may have crashed. */ }
+    }
   }
 }
 </script>

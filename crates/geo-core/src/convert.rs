@@ -186,7 +186,7 @@ mod tests {
         let gj = r#"{"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}"#;
         let geom = from_geojson(gj).unwrap();
         let bytes = to_msgpack(&geom).unwrap();
-        assert!(bytes.len() > 0);
+        assert!(!bytes.is_empty());
         let back = from_msgpack(&bytes).unwrap();
         let json = to_geojson(&back).unwrap();
         assert!(json.contains("Polygon"));

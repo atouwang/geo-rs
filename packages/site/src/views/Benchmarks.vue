@@ -20,7 +20,7 @@ function color(s: string) {
 <template>
   <section>
     <h2>Benchmarks: geo-rs vs Turf.js</h2>
-    <p>Rust 1.95 release + LTO. Single-operation latency.</p>
+    <p>Historical static figures; Turf.js values are estimates. These are not current browser benchmarks or verified browser speedups. Run cargo bench for your environment.</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Operation</th><th>geo-rs</th><th>Turf.js</th><th>Speedup</th></tr></thead>

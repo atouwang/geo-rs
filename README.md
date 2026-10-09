@@ -1,45 +1,70 @@
 # geo-rs
 
-A high-performance browser-native geospatial analysis engine. Rust core compiled to WebAssembly, TypeScript SDK for developers, with a Vue 3 interactive playground.
+A browser geospatial engine with a Rust core, WebAssembly workers, a TypeScript SDK and Vue 3 integrations.
 
-## Why
+Geometries remain in WASM memory between operations. Import and export use GeoJSON encoded as MessagePack; ArrayBuffers transfer between the main thread and workers.
 
-[Turf.js](https://turfjs.org) (~850K weekly downloads) is the de facto geospatial library for the browser, but it's written in pure JavaScript. On real-world datasets it chokes — 1000-point polygon intersection hangs the main thread, union of 1000 circles takes 5+ seconds.
+## Current functionality
 
-Six Rust+WASM alternatives were attempted. All died at the prototype stage, killed by JSON serialization overhead across the JS-WASM boundary.
+- TypeScript: area, length, centroid, bounding boxes, polygon buffers, simplify, contains/intersects/crosses, union/intersection/difference and approximate Voronoi.
+- Rust: additional predicates, XOR/dissolve, coordinate transforms, point spatial indexes, hex grids and contour segments.
+- Vue: useBuffer, useVoronoi and GeoCanvas.
+- Playground: real SDK operations in a dedicated worker, with results and memory statistics.
+- SharedWorker: compiled module shared between clients; each client has its own arena and memory budget.
 
-**geo-rs** solves this by keeping data resident in WASM memory — load once, operate many times, pay serialization only at import/export.
+This is a development repository. The API is not a Turf.js drop-in replacement. Measurements and polygon buffers are planar; buffer distance uses input coordinate units. Metric/geodesic buffering, exact Voronoi, rendering coverage and end-to-end benchmarks remain follow-up work. See [the current audit](docs/OPTIMIZATION.md) for priorities and [the onboarding guide](docs/ONBOARDING.md) for code entry points.
 
-## Project Status
+## Local setup
 
-Early development. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design.
+Requires Rust stable, Node.js 22+ and pnpm 10.32.1.
 
-## Tech Stack
+```sh
+rustup target add wasm32-unknown-unknown
+# Install wasm-pack if it is not already available.
+cargo install wasm-pack --locked
+wasm-pack build --dev --target web crates/geo-wasm
+pnpm install --frozen-lockfile
+pnpm build
+pnpm dev
+```
 
-| Layer | Technology |
-|---|---|
-| Compute Engine | Rust (`geo` crate ecosystem) |
-| WASM Bridge | wasm-bindgen + FlatBuffers |
-| TypeScript SDK | TypeScript 5.x |
-| Framework Integration | Vue 3 composables (`@geo-rs/vue`) |
-| Playground | Vue 3 + Vite + OpenLayers |
+Build WASM before installing the workspace: the site depends on its generated package.
+Use a release WASM build for production; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Quick Preview (Target API)
+## SDK example
 
 ```typescript
-// Level 1 — Simple
-import { buffer, intersect } from '@geo-rs/core'
-const zone = await buffer(center, { radius: 500, units: 'meters' })
-const overlap = await intersect(zone, buildings)
-
-// Level 2 — Batch (data stays in WASM)
 import { GeoEngine } from '@geo-rs/core'
+
 const engine = await GeoEngine.init()
-const h1 = await engine.load(cityBoundary)
-const h2 = await engine.buffer(h1, 1000)
-const result = await engine.read(h2)
-engine.free(h1, h2)
+try {
+  const input = await engine.load({
+    type: 'Polygon',
+    coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
+  })
+  const center = await engine.centroid(input)
+  console.log(await engine.read(center)) // GeoJSON Feature
+  engine.free(input, center)
+} finally {
+  engine.destroy()
+}
 ```
+
+Every load or geometry-producing operation owns a reference, including identical handles returned by deduplication. Free each reference once. Handles belong to their engine; clear/destroy invalidates them. A worker crash rejects outstanding calls and requires explicit reinitialization because geometry state has been lost.
+
+## Validation
+
+```sh
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all -- --check
+pnpm test
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+Tests include JavaScript-to-real-WASM transport, handle lifetimes, worker failures and benchmark-output parsing. For the interactive browser smoke suite, run the site and open /tests/browser-smoke.html.
 
 ## License
 
