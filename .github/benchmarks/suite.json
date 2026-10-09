@@ -4,5 +4,6 @@
   "parse_geojson_10k", "parse_msgpack_10k", "export_msgpack_10k",
   "rtree_build_10k", "rtree_search_10k_hits", "voronoi_100pts",
   "voronoi_1000pts", "hex_grid_beijing",
-  "arena_store_release_10k", "arena_dedup_10k"
+  "arena_store_release_10k", "arena_dedup_10k",
+  "arena_stats_full_16384", "arena_stats_sparse_16384"
 ]

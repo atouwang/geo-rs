@@ -24,6 +24,33 @@ describe('real WASM and JavaScript wire format', () => {
       expect(JSON.parse(engine.stats())).toMatchObject({ active: 0, refs: 0, allocated: 0 })
     } finally { engine.free() }
   })
+  it('balances arena stats after budget failure, partial release, clear and slot reuse', () => {
+    const engine = new Engine(64n)
+    const data = (x: number) => encode({ type: 'Point', coordinates: [x, 0] })
+    const stats = () => JSON.parse(engine.stats())
+    try {
+      const a = engine.load(data(1)), duplicate = engine.load(data(1)), b = engine.load(data(2))
+      expect(stats()).toEqual({ active: 2, refs: 3, allocated: 64, max: 64 })
+      expect(() => engine.load(data(3))).toThrow('Memory')
+      expect(stats()).toMatchObject({ active: 2, refs: 3, allocated: 64 })
+      engine.release(a)
+      expect(stats()).toMatchObject({ active: 2, refs: 2, allocated: 64 })
+      engine.release(b)
+      const reused = engine.load(data(3))
+      expect(reused).not.toBe(b)
+      expect(stats()).toMatchObject({ active: 2, refs: 2, allocated: 64 })
+      expect(() => engine.release(b)).toThrow()
+      expect(stats().refs).toBe(2)
+      engine.free_all()
+      expect(stats()).toEqual({ active: 0, refs: 0, allocated: 0, max: 64 })
+      expect(() => engine.read(duplicate)).toThrow()
+      const fresh = engine.load(data(1))
+      expect(fresh).not.toBe(a)
+      expect(stats()).toMatchObject({ active: 1, refs: 1, allocated: 32 })
+      engine.release(fresh)
+      expect(stats()).toMatchObject({ active: 0, refs: 0, allocated: 0 })
+    } finally { engine.free() }
+  })
   it('bounds Voronoi output and preserves input after invalid bounds', () => {
     const engine = new Engine()
     try {

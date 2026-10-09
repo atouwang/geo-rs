@@ -41,6 +41,19 @@ button.onclick = async () => {
       engine.free(duplicate)
     }
     check((await engine.stats()).active === 0, 'geometry variant arena leaked')
+    const retained = await Promise.all(Array.from({ length: 64 }, (_, i) =>
+      engine.load({ type: 'Point', coordinates: [i, 0] })))
+    check((await engine.stats()).active === 64, 'bulk stats active count invalid')
+    engine.free(...retained.slice(1))
+    check((await engine.stats()).active === 1 && (await engine.stats()).allocated === 32,
+      'sparse stats invalid after bulk release')
+    engine.freeAll()
+    check((await engine.stats()).active === 0 && (await engine.stats()).allocated === 0,
+      'clear stats invalid')
+    const fresh = await engine.load(point)
+    check((await engine.stats()).active === 1, 'stats invalid after clear/reuse')
+    engine.free(fresh)
+    check((await engine.stats()).active === 0, 'stats invalid after final release')
     passed.push('PASS dedicated worker: repeated imports, deduplication, export and release')
 
     for (const invalid of [

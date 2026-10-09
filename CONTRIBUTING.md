@@ -62,7 +62,7 @@ pnpm bench -- HEAD^
 
 Optional: add --no-opt to skip Binaryen optimization while retaining Rust release optimization.
 
-Benchmark CI runs on push, pull requests and manual dispatch. It compiles both versions first, then pairs each case on the same runner using the candidate's 18-case harness and resolved Cargo.lock with alternating order. Push compares with the pre-push commit, PR compares with its base SHA, and manual dispatch defaults to HEAD^. Missing/invalid output and build errors fail the job. A median slowdown over 15% with separated 95% confidence intervals is rerun on both commits with reversed order; a confirmed regression fails CI. Reports, metadata and logs are uploaded for 30 days. See [PERFORMANCE.md](docs/PERFORMANCE.md) for reproduction and limits. The old .github/benchmarks/baseline.json is historical and is no longer used as a gate.
+Benchmark CI runs on push, pull requests and manual dispatch. It compiles both versions first, then pairs each case on the same runner using the candidate's 20-case harness and resolved Cargo.lock with alternating order. Push compares with the pre-push commit, PR compares with its base SHA, and manual dispatch defaults to HEAD^. Missing/invalid output and build errors fail the job. A median slowdown over 15% with separated 95% confidence intervals is rerun on both commits with reversed order; a confirmed regression fails CI. Reports, metadata and logs are uploaded for 30 days. See [PERFORMANCE.md](docs/PERFORMANCE.md) for reproduction and limits. The old .github/benchmarks/baseline.json is historical and is no longer used as a gate.
 
 ## Structure and commits
 

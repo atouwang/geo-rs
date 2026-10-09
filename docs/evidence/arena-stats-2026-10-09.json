@@ -1,0 +1,545 @@
+{
+  "date": "2026-10-09",
+  "operation": "MemoryArena::stats with 16384 full or retained sparse slots",
+  "metric": "Criterion median nanoseconds with bootstrap 95 percent confidence intervals",
+  "search": {
+    "variants": 1,
+    "hypothesis": "maintain aggregate references on successful mutation and use live handle-map length instead of scanning slots"
+  },
+  "baseline_commit": "a015c9fb2326f3955723582e3ac2f80819d802c5",
+  "source_sha256": {
+    "baseline": "8069e22d74713c76e37c3ff7598d8782fb9b2de8020a33b56eb60fad37f0194f",
+    "candidate_worktree": "a4a207562b29d979742d4e58dd9220043ac701368184d336317f5a66ebbd76d9"
+  },
+  "before_after": {
+    "arena_stats_full_16384": {
+      "baseline": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "lower_bound": 13284.232264334305,
+          "upper_bound": 16126.981182083222
+        },
+        "point_estimate": 13783.415403071687,
+        "standard_error": 630.3524845055767
+      },
+      "candidate": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "lower_bound": 0.9737130751777016,
+          "upper_bound": 1.2193939604497388
+        },
+        "point_estimate": 1.0763168274593866,
+        "standard_error": 0.05975858686332198
+      }
+    },
+    "arena_stats_sparse_16384": {
+      "baseline": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "lower_bound": 15941.619318181818,
+          "upper_bound": 19310.74585137085
+        },
+        "point_estimate": 17582.59259259259,
+        "standard_error": 848.1693704184771
+      },
+      "candidate": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "lower_bound": 1.1485898424361338,
+          "upper_bound": 1.2956173433976175
+        },
+        "point_estimate": 1.2242027724625084,
+        "standard_error": 0.04115386205507278
+      }
+    }
+  },
+  "regression_before_fix": {
+    "command": "cargo test -p geo-wasm aggregate_reference_count_exceeds_single_slot_limit",
+    "exit_code": 1,
+    "failure": "attempt to add with overflow"
+  },
+  "correctness": {
+    "rust_workspace_tests": 93,
+    "arena_tests_reused_by_benchmark_crate": 12,
+    "sdk_tests": 54,
+    "real_wasm_tests": 7,
+    "vue_tests": 13,
+    "tooling_tests": 10,
+    "chromium_suites": 2,
+    "iterations_per_suite": 2,
+    "in_app_worker_smoke": "ALL PASSED; console warning/error logs empty"
+  },
+  "api": "Rust ArenaStats.total_references widens u32 to u64; WASM JSON keys and numeric representation unchanged. Slot counts remain checked u32; aggregate is at most 16384 * (2^32 - 1), below JS exact-integer limit.",
+  "limits": [
+    "Native release-profile statistics lookup only; excludes WASM/Worker RPC, JSON formatting and encoding, rendering, setup/release and memory peaks.",
+    "High-reference boundary is injected as an otherwise valid test state instead of issuing billions of loads.",
+    "Criterion optimizer barriers guard arena input and result. O(1) lookup timings near a nanosecond reflect native code, not an end-to-end request."
+  ],
+  "paired_run": {
+    "command": "node .github/scripts/bench-run.mjs a015c9f",
+    "report_dir": "target/performance/run-qdWzKQ",
+    "metadata": {
+      "baseline_commit": "a015c9fb2326f3955723582e3ac2f80819d802c5",
+      "current_commit": "a015c9fb2326f3955723582e3ac2f80819d802c5",
+      "requested_base": "a015c9f",
+      "dirty_worktree": true,
+      "platform": "win32",
+      "arch": "x64",
+      "os": "10.0.26300",
+      "cpu": "Intel(R) Core(TM) i7-14650HX",
+      "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-pc-windows-msvc\nrelease: 1.95.0\nLLVM version: 22.1.2",
+      "suite": [
+        "area_simple",
+        "centroid_simple",
+        "buffer_simple",
+        "simplify_1000pts",
+        "contains_point",
+        "union_two_squares",
+        "rtree_search_10k",
+        "parse_geojson",
+        "parse_geojson_10k",
+        "parse_msgpack_10k",
+        "export_msgpack_10k",
+        "rtree_build_10k",
+        "rtree_search_10k_hits",
+        "voronoi_100pts",
+        "voronoi_1000pts",
+        "hex_grid_beijing",
+        "arena_store_release_10k",
+        "arena_dedup_10k",
+        "arena_stats_full_16384",
+        "arena_stats_sparse_16384"
+      ],
+      "sample_size": 30,
+      "warm_up_seconds": 1,
+      "measurement_seconds": 2,
+      "threshold_percent": 15,
+      "confidence_level": 0.95,
+      "same_harness": true,
+      "started_at": "2026-10-09T07:55:41.162Z",
+      "harness_sha256": "e285612c5510733d9be7a7f08ce09bc74f227b5cfab99a7f3fd817cded9f57c5",
+      "lockfile_sha256": "509199544cf7e1607b5dab08b80248b8a7462e45677774cc651b2f241afe451f",
+      "pairing": "per-case, alternating order",
+      "confirmation_order": "reverse initial pair order",
+      "finished_at": "2026-10-09T08:00:44.448Z"
+    },
+    "baseline": {
+      "area_simple": {
+        "median_ns": 46.698283115813595,
+        "lower_ns": 46.11934179304584,
+        "upper_ns": 50.013980026727914
+      },
+      "centroid_simple": {
+        "median_ns": 65.75225071278109,
+        "lower_ns": 64.11497084113621,
+        "upper_ns": 66.93612606076965
+      },
+      "buffer_simple": {
+        "median_ns": 833.0350419587477,
+        "lower_ns": 808.180063578565,
+        "upper_ns": 878.2322072031961
+      },
+      "simplify_1000pts": {
+        "median_ns": 57977.8125,
+        "lower_ns": 51483.2781862745,
+        "upper_ns": 66690.37946428571
+      },
+      "contains_point": {
+        "median_ns": 1925.180754917597,
+        "lower_ns": 1834.54840805718,
+        "upper_ns": 2057.543534762833
+      },
+      "union_two_squares": {
+        "median_ns": 7311.387854110717,
+        "lower_ns": 6804.756109201986,
+        "upper_ns": 8378.642611683848
+      },
+      "rtree_search_10k": {
+        "median_ns": 35.976840276779924,
+        "lower_ns": 33.257230445903005,
+        "upper_ns": 37.6194570230694
+      },
+      "parse_geojson": {
+        "median_ns": 568.3869907802018,
+        "lower_ns": 523.0722082379743,
+        "upper_ns": 608.1650664139229
+      },
+      "parse_geojson_10k": {
+        "median_ns": 692411.4814814815,
+        "lower_ns": 630303.9576365664,
+        "upper_ns": 790883.8383838384
+      },
+      "parse_msgpack_10k": {
+        "median_ns": 429466.90476190473,
+        "lower_ns": 403273.5695339143,
+        "upper_ns": 461953.8095238095
+      },
+      "export_msgpack_10k": {
+        "median_ns": 255357.66402714932,
+        "lower_ns": 247055.15873015873,
+        "upper_ns": 274592.05128205125
+      },
+      "rtree_build_10k": {
+        "median_ns": 5452643.452380952,
+        "lower_ns": 5206290,
+        "upper_ns": 5763539.333333334
+      },
+      "rtree_search_10k_hits": {
+        "median_ns": 4138.6752380952385,
+        "lower_ns": 3985.6315192743764,
+        "upper_ns": 4340.9746031746035
+      },
+      "voronoi_100pts": {
+        "median_ns": 338414.3939393939,
+        "lower_ns": 323362.99603174604,
+        "upper_ns": 354803.57905982906
+      },
+      "voronoi_1000pts": {
+        "median_ns": 9087798.325358853,
+        "lower_ns": 8785230.090497738,
+        "upper_ns": 9836059.375
+      },
+      "hex_grid_beijing": {
+        "median_ns": 73418.07561728396,
+        "lower_ns": 68777.19907407407,
+        "upper_ns": 76863.2836299503
+      },
+      "arena_store_release_10k": {
+        "median_ns": 55991.32902371984,
+        "lower_ns": 53032.87388220783,
+        "upper_ns": 59247.8021978022
+      },
+      "arena_dedup_10k": {
+        "median_ns": 63977.37106643357,
+        "lower_ns": 61660.73667711599,
+        "upper_ns": 66605.24242424243
+      },
+      "arena_stats_full_16384": {
+        "median_ns": 13979.959207459207,
+        "lower_ns": 13038.486513486514,
+        "upper_ns": 14812.080575873679
+      },
+      "arena_stats_sparse_16384": {
+        "median_ns": 9876.585760517799,
+        "lower_ns": 9649.623786407767,
+        "upper_ns": 10490.332779764947
+      }
+    },
+    "current": {
+      "area_simple": {
+        "median_ns": 49.44069688749629,
+        "lower_ns": 48.03069094794377,
+        "upper_ns": 51.224094149220534
+      },
+      "centroid_simple": {
+        "median_ns": 71.25004393966557,
+        "lower_ns": 69.06329420945511,
+        "upper_ns": 72.56082881759113
+      },
+      "buffer_simple": {
+        "median_ns": 977.3871452760857,
+        "lower_ns": 878.0036043251903,
+        "upper_ns": 1046.65306701375
+      },
+      "simplify_1000pts": {
+        "median_ns": 69650.60468631898,
+        "lower_ns": 62363.18150448585,
+        "upper_ns": 75209.74789915967
+      },
+      "contains_point": {
+        "median_ns": 1658.3999647763296,
+        "lower_ns": 1606.1968499974842,
+        "upper_ns": 1740.3597217330046
+      },
+      "union_two_squares": {
+        "median_ns": 5992.304804804804,
+        "lower_ns": 5743.247711997712,
+        "upper_ns": 6548.880698880699
+      },
+      "rtree_search_10k": {
+        "median_ns": 39.150417025401794,
+        "lower_ns": 36.7989659158455,
+        "upper_ns": 42.582153301748654
+      },
+      "parse_geojson": {
+        "median_ns": 589.5717621812673,
+        "lower_ns": 539.4296473954389,
+        "upper_ns": 630.834252381775
+      },
+      "parse_geojson_10k": {
+        "median_ns": 646091.7929292929,
+        "lower_ns": 552243.717948718,
+        "upper_ns": 741767.4342105263
+      },
+      "parse_msgpack_10k": {
+        "median_ns": 388144.0869565217,
+        "lower_ns": 361532.96918767504,
+        "upper_ns": 431636.43707482994
+      },
+      "export_msgpack_10k": {
+        "median_ns": 219943.28282828286,
+        "lower_ns": 201678.23076923075,
+        "upper_ns": 237540.756302521
+      },
+      "rtree_build_10k": {
+        "median_ns": 5669787.577639751,
+        "lower_ns": 5228925.294117647,
+        "upper_ns": 6137350.4048582995
+      },
+      "rtree_search_10k_hits": {
+        "median_ns": 3691.1640776699032,
+        "lower_ns": 3612.036266502286,
+        "upper_ns": 3767.7209793161674
+      },
+      "voronoi_100pts": {
+        "median_ns": 380797.35537190083,
+        "lower_ns": 370818.5064935065,
+        "upper_ns": 403299.02597402595
+      },
+      "voronoi_1000pts": {
+        "median_ns": 9351806.25,
+        "lower_ns": 9106568.75,
+        "upper_ns": 9902543.75
+      },
+      "hex_grid_beijing": {
+        "median_ns": 70812.72727272726,
+        "lower_ns": 69572.81385281385,
+        "upper_ns": 75860.86224564485
+      },
+      "arena_store_release_10k": {
+        "median_ns": 58396.78760393046,
+        "lower_ns": 55797.879151660665,
+        "upper_ns": 62559.421768707485
+      },
+      "arena_dedup_10k": {
+        "median_ns": 67361.79315476191,
+        "lower_ns": 58379.34027777778,
+        "upper_ns": 70828.15600198413
+      },
+      "arena_stats_full_16384": {
+        "median_ns": 0.9555229003497279,
+        "lower_ns": 0.9122531682520907,
+        "upper_ns": 1.1239655705578193
+      },
+      "arena_stats_sparse_16384": {
+        "median_ns": 0.8918139971810852,
+        "lower_ns": 0.8680673232296607,
+        "upper_ns": 0.9425093597739544
+      }
+    },
+    "comparison": {
+      "failures": 0,
+      "rows": [
+        {
+          "name": "area_simple",
+          "baseline_ns": 46.698283115813595,
+          "current_ns": 49.44069688749629,
+          "percent": 5.872622265108542,
+          "status": "OK"
+        },
+        {
+          "name": "centroid_simple",
+          "baseline_ns": 65.75225071278109,
+          "current_ns": 71.25004393966557,
+          "percent": 8.361376481087982,
+          "status": "OK"
+        },
+        {
+          "name": "buffer_simple",
+          "baseline_ns": 833.0350419587477,
+          "current_ns": 977.3871452760857,
+          "percent": 17.328455112514508,
+          "status": "NOISE",
+          "reason": "95% confidence intervals overlap"
+        },
+        {
+          "name": "simplify_1000pts",
+          "baseline_ns": 57977.8125,
+          "current_ns": 69650.60468631898,
+          "percent": 20.133205588463664,
+          "status": "NOISE",
+          "reason": "95% confidence intervals overlap"
+        },
+        {
+          "name": "contains_point",
+          "baseline_ns": 1925.180754917597,
+          "current_ns": 1658.3999647763296,
+          "percent": -13.857441149866794,
+          "status": "OK"
+        },
+        {
+          "name": "union_two_squares",
+          "baseline_ns": 7311.387854110717,
+          "current_ns": 5992.304804804804,
+          "percent": -18.041486454097473,
+          "status": "OK"
+        },
+        {
+          "name": "rtree_search_10k",
+          "baseline_ns": 35.976840276779924,
+          "current_ns": 39.150417025401794,
+          "percent": 8.821165850604592,
+          "status": "OK"
+        },
+        {
+          "name": "parse_geojson",
+          "baseline_ns": 568.3869907802018,
+          "current_ns": 589.5717621812673,
+          "percent": 3.7271738700398545,
+          "status": "OK"
+        },
+        {
+          "name": "parse_geojson_10k",
+          "baseline_ns": 692411.4814814815,
+          "current_ns": 646091.7929292929,
+          "percent": -6.689618787528351,
+          "status": "OK"
+        },
+        {
+          "name": "parse_msgpack_10k",
+          "baseline_ns": 429466.90476190473,
+          "current_ns": 388144.0869565217,
+          "percent": -9.621886424122078,
+          "status": "OK"
+        },
+        {
+          "name": "export_msgpack_10k",
+          "baseline_ns": 255357.66402714932,
+          "current_ns": 219943.28282828286,
+          "percent": -13.8685405561594,
+          "status": "OK"
+        },
+        {
+          "name": "rtree_build_10k",
+          "baseline_ns": 5452643.452380952,
+          "current_ns": 5669787.577639751,
+          "percent": 3.9823642817499927,
+          "status": "OK"
+        },
+        {
+          "name": "rtree_search_10k_hits",
+          "baseline_ns": 4138.6752380952385,
+          "current_ns": 3691.1640776699032,
+          "percent": -10.81290835062708,
+          "status": "OK"
+        },
+        {
+          "name": "voronoi_100pts",
+          "baseline_ns": 338414.3939393939,
+          "current_ns": 380797.35537190083,
+          "percent": 12.523983078597183,
+          "status": "OK"
+        },
+        {
+          "name": "voronoi_1000pts",
+          "baseline_ns": 9087798.325358853,
+          "current_ns": 9351806.25,
+          "percent": 2.905081243984607,
+          "status": "OK"
+        },
+        {
+          "name": "hex_grid_beijing",
+          "baseline_ns": 73418.07561728396,
+          "current_ns": 70812.72727272726,
+          "percent": -3.548647009134287,
+          "status": "OK"
+        },
+        {
+          "name": "arena_store_release_10k",
+          "baseline_ns": 55991.32902371984,
+          "current_ns": 58396.78760393046,
+          "percent": 4.29612695778589,
+          "status": "OK"
+        },
+        {
+          "name": "arena_dedup_10k",
+          "baseline_ns": 63977.37106643357,
+          "current_ns": 67361.79315476191,
+          "percent": 5.290029946391492,
+          "status": "OK"
+        },
+        {
+          "name": "arena_stats_full_16384",
+          "baseline_ns": 13979.959207459207,
+          "current_ns": 0.9555229003497279,
+          "percent": -99.99316505229973,
+          "status": "OK"
+        },
+        {
+          "name": "arena_stats_sparse_16384",
+          "baseline_ns": 9876.585760517799,
+          "current_ns": 0.8918139971810852,
+          "percent": -99.99097042218025,
+          "status": "OK"
+        }
+      ],
+      "results": [
+        "OK area_simple: 46.7 -> 49.4 ns (5.9%)",
+        "OK centroid_simple: 65.8 -> 71.3 ns (8.4%)",
+        "NOISE buffer_simple: 833.0 -> 977.4 ns (17.3%); 95% confidence intervals overlap",
+        "NOISE simplify_1000pts: 57977.8 -> 69650.6 ns (20.1%); 95% confidence intervals overlap",
+        "OK contains_point: 1925.2 -> 1658.4 ns (-13.9%)",
+        "OK union_two_squares: 7311.4 -> 5992.3 ns (-18.0%)",
+        "OK rtree_search_10k: 36.0 -> 39.2 ns (8.8%)",
+        "OK parse_geojson: 568.4 -> 589.6 ns (3.7%)",
+        "OK parse_geojson_10k: 692411.5 -> 646091.8 ns (-6.7%)",
+        "OK parse_msgpack_10k: 429466.9 -> 388144.1 ns (-9.6%)",
+        "OK export_msgpack_10k: 255357.7 -> 219943.3 ns (-13.9%)",
+        "OK rtree_build_10k: 5452643.5 -> 5669787.6 ns (4.0%)",
+        "OK rtree_search_10k_hits: 4138.7 -> 3691.2 ns (-10.8%)",
+        "OK voronoi_100pts: 338414.4 -> 380797.4 ns (12.5%)",
+        "OK voronoi_1000pts: 9087798.3 -> 9351806.3 ns (2.9%)",
+        "OK hex_grid_beijing: 73418.1 -> 70812.7 ns (-3.5%)",
+        "OK arena_store_release_10k: 55991.3 -> 58396.8 ns (4.3%)",
+        "OK arena_dedup_10k: 63977.4 -> 67361.8 ns (5.3%)",
+        "OK arena_stats_full_16384: 13980.0 -> 1.0 ns (-100.0%)",
+        "OK arena_stats_sparse_16384: 9876.6 -> 0.9 ns (-100.0%)"
+      ]
+    }
+  },
+  "candidate_provenance": "Measured before commit: both metadata commit IDs are a015c9f, dirty_worktree=true. Baseline source is clean a015c9f; candidate uses the tracked optimization in the current worktree.",
+  "reverse_confirmation": {
+    "method": "Reuses exact paired-run binaries; reverses original stats case order",
+    "cases": {
+      "arena_stats_full_16384": {
+        "current": {
+          "median_ns": 0.736559999839888,
+          "interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 0.7223297726109034,
+            "upper_bound": 0.7564633156428651
+          }
+        },
+        "baseline": {
+          "median_ns": 13501.668142463597,
+          "interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 12814.594155844155,
+            "upper_bound": 14772.09976876126
+          }
+        },
+        "change_percent": -99.99454467409457
+      },
+      "arena_stats_sparse_16384": {
+        "baseline": {
+          "median_ns": 10420.691787439613,
+          "interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 9818.085714285715,
+            "upper_bound": 10756.986666666668
+          }
+        },
+        "current": {
+          "median_ns": 1.174919801004358,
+          "interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 1.071922173397644,
+            "upper_bound": 1.2853204146051866
+          }
+        },
+        "change_percent": -99.98872512665214
+      }
+    }
+  },
+  "reproduce_after_commit": "pnpm bench -- a015c9f"
+}

@@ -158,6 +158,20 @@ fn bench_arena(c: &mut Criterion) {
     assert_eq!(arena.stats().total_allocated, 0);
 }
 
+fn bench_arena_stats(c: &mut Criterion) {
+    let mut arena = geo_bench::arena::MemoryArena::new(None);
+    let handles: Vec<_> =
+        (0..16_384).map(|i| arena.store(Geometry::Point(Point { x: i as f64, y: 0.0 })).unwrap()).collect();
+    assert_eq!(arena.stats().active_geometries, 16_384);
+    c.bench_function("arena_stats_full_16384", |b| b.iter(|| black_box(&arena).stats()));
+    for handle in handles.into_iter().skip(1) {
+        arena.remove(handle).unwrap();
+    }
+    assert_eq!(arena.stats().active_geometries, 1);
+    assert_eq!(arena.stats().total_references, 1);
+    c.bench_function("arena_stats_sparse_16384", |b| b.iter(|| black_box(&arena).stats()));
+}
+
 criterion_group!(
     benches,
     bench_area,
@@ -171,5 +185,6 @@ criterion_group!(
     bench_large_geometry,
     bench_grids,
     bench_arena,
+    bench_arena_stats,
 );
 criterion_main!(benches);

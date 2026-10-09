@@ -17,6 +17,8 @@ pub struct MemoryArena {
     slots: Vec<Option<Slot>>,
     free_list: Vec<usize>,
     total_allocated: u64,
+    // At most MAX_SLOTS * u32::MAX references; the aggregate fits in u64.
+    total_references: u64,
     handle_counter: u64,
     handles: HashMap<u64, usize>,
     dedup: HashMap<u64, Vec<u64>>,
@@ -29,6 +31,7 @@ impl MemoryArena {
             slots: Vec::with_capacity(256),
             free_list: Vec::new(),
             total_allocated: 0,
+            total_references: 0,
             handle_counter: 0,
             handles: HashMap::new(),
             dedup: HashMap::new(),
@@ -55,6 +58,7 @@ impl MemoryArena {
                             .refcount
                             .checked_add(1)
                             .ok_or_else(|| GeoError::InvalidGeometry("reference count exhausted".into()))?;
+                        self.total_references += 1;
                         return Ok(existing_handle);
                     }
                 }
@@ -77,6 +81,7 @@ impl MemoryArena {
             .checked_add(1)
             .ok_or_else(|| GeoError::InvalidGeometry("handle space exhausted".into()))?;
         self.total_allocated += size;
+        self.total_references += 1;
         let handle = self.handle_counter;
         let slot = Slot { geom, size_estimate: size, refcount: 1, hash };
 
@@ -102,6 +107,7 @@ impl MemoryArena {
         match self.slots.get_mut(idx).and_then(|s| s.as_mut()) {
             Some(slot) => {
                 slot.refcount -= 1;
+                self.total_references -= 1;
                 if slot.refcount > 0 {
                     return Ok(());
                 }
@@ -126,16 +132,15 @@ impl MemoryArena {
         self.slots.clear();
         self.free_list.clear();
         self.total_allocated = 0;
+        self.total_references = 0;
         self.handles.clear();
         self.dedup.clear();
     }
 
     pub fn stats(&self) -> ArenaStats {
-        let active = self.slots.iter().filter(|s| s.is_some()).count();
-        let refs: u32 = self.slots.iter().filter_map(|s| s.as_ref().map(|s| s.refcount)).sum();
         ArenaStats {
-            active_geometries: active,
-            total_references: refs,
+            active_geometries: self.handles.len(),
+            total_references: self.total_references,
             total_allocated: self.total_allocated,
             max_memory: self.max_memory,
         }
@@ -145,7 +150,8 @@ impl MemoryArena {
 #[derive(Debug)]
 pub struct ArenaStats {
     pub active_geometries: usize,
-    pub total_references: u32,
+    /// Aggregate across slots, each retaining its own u32 reference limit.
+    pub total_references: u64,
     pub total_allocated: u64,
     pub max_memory: u64,
 }
@@ -320,6 +326,7 @@ mod tests {
         assert!(arena.store(Geometry::Point(Point { x: 3.0, y: 4.0 })).is_err());
         assert_eq!(arena.stats().total_allocated, 32);
         assert_eq!(arena.stats().active_geometries, 1);
+        assert_eq!(arena.stats().total_references, 1);
         arena.remove(h).unwrap();
         assert!(arena.store(Geometry::Point(Point { x: 3.0, y: 4.0 })).is_ok());
     }
@@ -397,6 +404,55 @@ mod tests {
         assert_eq!(arena.stats().total_references, 1);
         arena.remove(second).unwrap();
         assert!(arena.dedup.is_empty());
+        assert_eq!(arena.stats().total_allocated, 0);
+    }
+    #[test]
+    fn aggregate_reference_count_exceeds_single_slot_limit() {
+        let mut arena = MemoryArena::new(None);
+        let first = arena.store(Geometry::Point(Point { x: 1.0, y: 0.0 })).unwrap();
+        let second = arena.store(Geometry::Point(Point { x: 2.0, y: 0.0 })).unwrap();
+        // Reach a valid high-reference state without billions of duplicate loads.
+        arena.slots[arena.handles[&first]].as_mut().unwrap().refcount = u32::MAX;
+        arena.total_references = u64::from(u32::MAX) + 1;
+        assert_eq!(arena.stats().total_references, u64::from(u32::MAX) + 1);
+        assert!(arena.store(Geometry::Point(Point { x: 1.0, y: 0.0 })).is_err());
+        assert_eq!(arena.stats().total_references, u64::from(u32::MAX) + 1);
+        arena.remove(first).unwrap();
+        assert_eq!(arena.store(Geometry::Point(Point { x: 1.0, y: 0.0 })).unwrap(), first);
+        assert_eq!(arena.stats().total_references, u64::from(u32::MAX) + 1);
+        arena.remove(second).unwrap();
+        assert_eq!(arena.stats().total_references, u64::from(u32::MAX));
+        arena.clear();
+        assert_eq!(arena.stats().total_references, 0);
+    }
+
+    #[test]
+    fn stats_balance_after_capacity_failure_release_reuse_and_clear() {
+        let mut arena = MemoryArena::new(None);
+        let handles: Vec<_> =
+            (0..MAX_SLOTS).map(|i| arena.store(Geometry::Point(Point { x: i as f64, y: 0.0 })).unwrap()).collect();
+        assert!(arena.store(Geometry::Point(Point { x: MAX_SLOTS as f64, y: 0.0 })).is_err());
+        assert_eq!(arena.stats().total_references, MAX_SLOTS as u64);
+        let duplicate = arena.store(Geometry::Point(Point { x: 0.0, y: 0.0 })).unwrap();
+        assert_eq!(arena.stats().total_references, MAX_SLOTS as u64 + 1);
+        for handle in handles {
+            arena.remove(handle).unwrap();
+        }
+        assert_eq!(arena.stats().active_geometries, 1);
+        assert_eq!(arena.stats().total_references, 1);
+        assert_eq!(arena.stats().total_allocated, 32);
+        assert!(arena.remove(u64::MAX).is_err());
+        let reused = arena.store(Geometry::Point(Point { x: MAX_SLOTS as f64, y: 0.0 })).unwrap();
+        assert_eq!(arena.stats().total_references, 2);
+        arena.handle_counter = u64::MAX;
+        assert!(arena.store(Geometry::Point(Point { x: -1.0, y: 0.0 })).is_err());
+        assert_eq!(arena.stats().total_references, 2);
+        arena.remove(duplicate).unwrap();
+        arena.remove(reused).unwrap();
+        assert_eq!(arena.stats().total_references, 0);
+        arena.clear();
+        assert_eq!(arena.stats().active_geometries, 0);
+        assert_eq!(arena.stats().total_references, 0);
         assert_eq!(arena.stats().total_allocated, 0);
     }
 }
