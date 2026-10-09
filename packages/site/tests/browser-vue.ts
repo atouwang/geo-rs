@@ -1,5 +1,5 @@
 import { createApp, effectScope, h, nextTick, reactive } from 'vue'
-import { GeoCanvas, useBuffer } from '@geo-rs/vue'
+import { GeoCanvas, useBuffer, useVoronoi } from '@geo-rs/vue'
 import '@geo-rs/vue/style.css'
 import { computeBBox } from '@geo-rs/core'
 
@@ -42,6 +42,14 @@ button.onclick = async () => {
     const pending = disposed.execute(donut, { radius: 0.1 }); scope.stop(); await pending
     check(disposed.result.value === null && !disposed.loading.value, 'disposed scope mutated')
     passed.push('PASS scope disposal during computation')
+    const voronoi = useVoronoi()
+    for (const coordinates of [[[0,0],[1,0],[2,0]], [[1,1],[1,1],[1,1]]]) {
+      await voronoi.execute({ type: 'FeatureCollection', features: coordinates.map(coordinates => ({
+        type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates },
+      })) })
+      check(!voronoi.error.value && (voronoi.result.value?.features.length ?? 0) > 0, 'degenerate auto-bbox rejected valid sites')
+    }
+    passed.push('PASS collinear/coincident Voronoi sites with automatically padded bounds')
     state.geometry = structuredClone(donut); await nextTick()
     output.textContent = passed.join('\n') + '\nALL PASSED'
   } catch (error) { output.textContent = passed.join('\n') + '\nFAIL ' + String(error) }

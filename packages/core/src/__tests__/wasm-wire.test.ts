@@ -8,6 +8,21 @@ beforeAll(() => {
 })
 
 describe('real WASM and JavaScript wire format', () => {
+  it('bounds Voronoi output and preserves input after invalid bounds', () => {
+    const engine = new Engine()
+    try {
+      const h = engine.load(encode({ type: 'MultiPoint', coordinates: [[0,0],[5,0],[2.5,5]] }))
+      expect(() => engine.voronoi(h, JSON.stringify({ min_x: 0, min_y: 0, max_x: 0, max_y: 6 }))).toThrow('bbox')
+      const bounds = JSON.stringify({ min_x: -1, min_y: -1, max_x: 6, max_y: 6 })
+      const a = engine.voronoi(h, bounds), b = engine.voronoi(h, bounds)
+      expect(decode(engine.read(a))).toEqual(decode(engine.read(b)))
+      const bbox = JSON.parse(engine.bbox(a))
+      expect(bbox.min_x).toBeGreaterThanOrEqual(-1); expect(bbox.min_y).toBeGreaterThanOrEqual(-1)
+      expect(bbox.max_x).toBeLessThanOrEqual(6); expect(bbox.max_y).toBeLessThanOrEqual(6)
+      engine.release(a); engine.release(b); engine.release(h)
+      expect(JSON.parse(engine.stats())).toMatchObject({ active: 0, refs: 0, allocated: 0 })
+    } finally { engine.free() }
+  })
   it('rejects malformed inputs without poisoning the engine', () => {
     const engine = new Engine()
     try {

@@ -113,12 +113,12 @@ impl WasmEngine {
     pub fn voronoi_from_pts(&mut self, pts_handle: u64, bbox_json: &str) -> Result<u64, String> {
         let pts_geom = self.arena.get(pts_handle).map_err(|e| e.to_string())?;
         let pts = match pts_geom {
-            Geometry::MultiPoint(mp) => mp.points.clone(),
+            Geometry::MultiPoint(mp) => &mp.points,
             _ => return Err("voronoi requires MultiPoint".to_string()),
         };
         let bbox: geo_core::types::BBox =
             serde_json::from_str(bbox_json).map_err(|e| format!("Invalid bbox JSON: {}", e))?;
-        let polys = geo_grid::voronoi::voronoi(&pts, &bbox);
+        let polys = geo_grid::voronoi::voronoi(pts, &bbox).map_err(|e| e.to_string())?;
         let result = Geometry::GeometryCollection(polys.into_iter().map(Geometry::Polygon).collect());
         self.arena.store(result).map_err(|e| e.to_string())
     }

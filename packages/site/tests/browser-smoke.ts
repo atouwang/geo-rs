@@ -50,6 +50,8 @@ button.onclick = async () => {
     ].map(coordinates => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates } })) },
     { minX: 0, minY: 0, maxX: 4, maxY: 4 })
     check(cells.type === 'FeatureCollection' && cells.features.length === 3, 'Voronoi API result invalid')
+    const coordinates = cells.features.flatMap(f => f.geometry.coordinates.flat())
+    check(coordinates.every(([x,y]) => x >= 0 && x <= 4 && y >= 0 && y <= 4), 'Voronoi exceeded caller bbox')
     passed.push('PASS stateless APIs: centroid, contains, union and Voronoi')
 
     const [a, b] = await Promise.all([GeoEngine.init({ shared: true }), GeoEngine.init({ shared: true })])

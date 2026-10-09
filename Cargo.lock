@@ -388,6 +388,7 @@ version = "0.1.0"
 dependencies = [
  "geo 0.28.0",
  "geo-core",
+ "geo-index",
  "geo-types",
 ]
 

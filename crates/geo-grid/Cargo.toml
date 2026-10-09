@@ -7,5 +7,6 @@ repository.workspace = true
 
 [dependencies]
 geo-core = { path = "../geo-core" }
+geo-index = { path = "../geo-index" }
 geo.workspace = true
 geo-types.workspace = true
