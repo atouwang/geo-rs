@@ -5,11 +5,14 @@ use geojson::{GeometryValue as Gv, Position};
 // --- MessagePack binary serialization ---
 
 pub fn from_msgpack(bytes: &[u8]) -> Result<Geometry, GeoError> {
-    rmp_serde::from_slice(bytes).map_err(|e| GeoError::SerializationError(format!("MsgPack: {}", e)))
+    let gj: geojson::GeoJson =
+        rmp_serde::from_slice(bytes).map_err(|e| GeoError::SerializationError(format!("MsgPack: {}", e)))?;
+    geojson_to_geometry(&gj)
 }
 
 pub fn to_msgpack(geom: &Geometry) -> Result<Vec<u8>, GeoError> {
-    rmp_serde::to_vec(geom).map_err(|e| GeoError::SerializationError(format!("MsgPack: {}", e)))
+    rmp_serde::to_vec_named(&geometry_to_geojson(geom))
+        .map_err(|e| GeoError::SerializationError(format!("MsgPack: {}", e)))
 }
 
 // --- GeoJSON text serialization ---
@@ -165,6 +168,17 @@ mod tests {
         let bytes = to_msgpack(&geom).unwrap();
         let back = from_msgpack(&bytes).unwrap();
         assert_eq!(geom, back);
+    }
+
+    #[test]
+    fn test_msgpack_geojson_wire_format() {
+        let json = serde_json::json!({"type": "Point", "coordinates": [1.0, 2.0]});
+        let bytes = rmp_serde::to_vec_named(&json).unwrap();
+        let geom = from_msgpack(&bytes).unwrap();
+        assert_eq!(geom, Geometry::Point(Point { x: 1.0, y: 2.0 }));
+        let output: serde_json::Value = rmp_serde::from_slice(&to_msgpack(&geom).unwrap()).unwrap();
+        assert_eq!(output["type"], "Feature");
+        assert_eq!(output["geometry"], json);
     }
 
     #[test]

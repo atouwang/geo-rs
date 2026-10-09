@@ -176,7 +176,7 @@ fn dispatch_unary(op: u8, geom: &Geometry, param: f64) -> Result<Geometry, Strin
         OP_BUFFER => geo_algo::buffer::buffer(geom, param, Units::Meters).map_err(|e| e.to_string()),
         OP_SIMPLIFY => geo_algo::simplify::simplify(geom, param).map_err(|e| e.to_string()),
         OP_CENTROID => geo_core::measure::centroid(geom)
-            .map(|pt| Geometry::Point(pt))
+            .map(Geometry::Point)
             .ok_or_else(|| "centroid undefined for this geometry".to_string()),
         _ => Err(format!("Unknown unary op: {}", op)),
     }
@@ -245,7 +245,7 @@ mod tests {
         let mut e = WasmEngine::new(None);
         let h = e.load_bytes(&encode(&pt_geom(10.0, 20.0))).unwrap();
         let bytes = e.read_bytes(h).unwrap();
-        let geom: Geometry = rmp_serde::from_slice(&bytes).unwrap();
+        let geom = geo_core::convert::from_msgpack(&bytes).unwrap();
         assert!(matches!(geom, Geometry::Point(_)));
     }
     #[test]
