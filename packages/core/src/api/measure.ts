@@ -1,11 +1,11 @@
-import type { Feature, Point, Polygon } from 'geojson'
+import type { Feature, Point, MultiPolygon } from 'geojson'
 import type { GeoJSON } from '../types'
 import { getSharedEngine, releaseSharedEngine } from './shared'
 
 export async function buffer(
   geom: GeoJSON,
   radius: number,
-): Promise<Feature<Polygon>> {
+): Promise<Feature<MultiPolygon>> {
   const engine = await getSharedEngine()
   const handles: bigint[] = []
   try {
@@ -13,7 +13,7 @@ export async function buffer(
     handles.push(h)
     const resultH = await engine.buffer(h, radius)
     handles.push(resultH)
-    const result = await engine.read(resultH) as Feature<Polygon>
+    const result = await engine.read(resultH) as Feature<MultiPolygon>
     return result
   } finally {
     engine.free(...handles)

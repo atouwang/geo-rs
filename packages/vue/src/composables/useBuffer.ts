@@ -1,26 +1,16 @@
-import { ref, shallowRef, unref, type MaybeRef } from 'vue'
+import { unref, type MaybeRef } from 'vue'
 import { buffer as coreBuffer } from '@geo-rs/core'
-import type { Feature, Polygon } from 'geojson'
+import type { Feature } from 'geojson'
+import { useAsyncState } from './async-state'
 
 export function useBuffer() {
-  const loading = ref(false)
-  const error = ref<Error | null>(null)
-  const result = shallowRef<Feature<Polygon> | null>(null)
-
-  async function execute(
+  return useAsyncState(async (
     geom: MaybeRef<Feature>,
+    // Units are reserved until the API supports metric/geodesic conversion.
     options: MaybeRef<{ radius: number; units?: 'meters' | 'kilometers' | 'miles' }>,
-  ) {
-    loading.value = true
-    error.value = null
-    try {
-      result.value = await coreBuffer(unref(geom), unref(options).radius)
-    } catch (e) {
-      error.value = e as Error
-    } finally {
-      loading.value = false
-    }
-  }
-
-  return { execute, result, loading, error }
+  ) => {
+    const config = unref(options)
+    if (config.units !== undefined) throw new Error('Buffer uses input coordinate units; metric units are not supported')
+    return coreBuffer(unref(geom), config.radius)
+  })
 }

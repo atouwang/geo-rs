@@ -27,6 +27,20 @@ button.onclick = async () => {
     check((await engine.stats()).active === 0, 'dedicated arena leaked')
     passed.push('PASS dedicated worker: repeated imports, deduplication, export and release')
 
+    for (const invalid of [
+      { type: 'Polygon', coordinates: [[]] },
+      { type: 'MultiPolygon', coordinates: [[[[0,0],[1,0],[1,1],[0,0]]], []] },
+      { type: 'Point', coordinates: [NaN, 1] },
+    ] as GeoJSON[]) {
+      let rejected = false
+      try { await engine.load(invalid) } catch { rejected = true }
+      check(rejected, 'invalid input accepted')
+      const valid = await engine.load(polygon)
+      check(await engine.area(valid) === 16, 'failed import poisoned the worker')
+      engine.free(valid)
+    }
+    passed.push('PASS invalid input rejection and same-worker recovery')
+
     const result = await centroid(polygon)
     check(result.geometry.coordinates[0] === 2 && result.geometry.coordinates[1] === 2, 'wrong centroid')
     check(await contains(polygon, point), 'point containment failed')
