@@ -8,7 +8,8 @@
     "typecheck": "pnpm --filter @geo-rs/core build && pnpm --filter @geo-rs/vue build && pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test && pnpm test:tooling",
-    "test:tooling": "node --test .github/scripts/bench-compare.test.mjs"
+    "test:tooling": "node --test .github/scripts/bench-compare.test.mjs",
+    "bench": "node .github/scripts/bench-run.mjs"
   },
   "devDependencies": {
     "eslint": "^10.3.0",

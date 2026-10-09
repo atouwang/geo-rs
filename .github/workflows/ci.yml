@@ -5,6 +5,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -76,14 +77,31 @@ jobs:
   bench:
     name: Benchmarks (regression check)
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Run benchmarks
-        shell: bash
-        run: cargo bench --bench core_ops 2>&1 | tee bench_output.txt
-      - name: Compare against baseline
-        run: node .github/scripts/bench-compare.mjs < bench_output.txt
-        continue-on-error: true
+        with:
+          workspaces: |
+            . -> target/bench-baseline
+            . -> target/bench-current
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test performance gate
+        run: node --test .github/scripts/bench-compare.test.mjs
+      - name: Compare native benchmarks on the same runner
+        env:
+          BENCH_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD^' }}
+        run: node .github/scripts/bench-run.mjs
+      - name: Upload benchmark measurements and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-benchmarks-${{ github.sha }}
+          path: target/performance/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,441 @@
+{
+  "note": "Local calibration of the new harness against unchanged native implementation at 76c174c. The checkout contains benchmark/tooling changes only; differences are measurement variation, not an optimization speedup. CI independently remeasures its own baseline and candidate.",
+  "metadata": {
+    "baseline_commit": "76c174c4e147413e5540241d264363fb900db5c8",
+    "current_commit": "76c174c4e147413e5540241d264363fb900db5c8",
+    "requested_base": "76c174c",
+    "dirty_worktree": true,
+    "platform": "win32",
+    "arch": "x64",
+    "os": "10.0.26300",
+    "cpu": "Intel(R) Core(TM) i7-14650HX",
+    "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-pc-windows-msvc\nrelease: 1.95.0\nLLVM version: 22.1.2",
+    "suite": [
+      "area_simple",
+      "centroid_simple",
+      "buffer_simple",
+      "simplify_1000pts",
+      "contains_point",
+      "union_two_squares",
+      "rtree_search_10k",
+      "parse_geojson",
+      "parse_geojson_10k",
+      "parse_msgpack_10k",
+      "export_msgpack_10k",
+      "rtree_build_10k",
+      "rtree_search_10k_hits",
+      "voronoi_100pts",
+      "voronoi_1000pts",
+      "hex_grid_beijing"
+    ],
+    "sample_size": 30,
+    "warm_up_seconds": 1,
+    "measurement_seconds": 2,
+    "threshold_percent": 15,
+    "confidence_level": 0.95,
+    "same_harness": true,
+    "started_at": "2026-10-09T05:49:00.592Z",
+    "harness_sha256": "35c3cf76dc1db3a8624ac34ed6a3c5beec3b16fab61f0ff712ff81294e72c3f1",
+    "pairing": "per-case, alternating order",
+    "confirmation_order": "reverse initial pair order",
+    "finished_at": "2026-10-09T05:52:35.809Z"
+  },
+  "baseline": {
+    "area_simple": {
+      "median_ns": 44.691422595088625,
+      "lower_ns": 44.190117861032086,
+      "upper_ns": 45.72388797917857
+    },
+    "centroid_simple": {
+      "median_ns": 69.50513134356464,
+      "lower_ns": 67.72804103281459,
+      "upper_ns": 72.86566858204051
+    },
+    "buffer_simple": {
+      "median_ns": 759.0783851712222,
+      "lower_ns": 735.2348292612195,
+      "upper_ns": 803.929401529335
+    },
+    "simplify_1000pts": {
+      "median_ns": 45867.82482223658,
+      "lower_ns": 41937.21250404924,
+      "upper_ns": 47210.67512531328
+    },
+    "contains_point": {
+      "median_ns": 1395.9541407659092,
+      "lower_ns": 1337.4910306452623,
+      "upper_ns": 1410.523856086969
+    },
+    "union_two_squares": {
+      "median_ns": 5625.013623978201,
+      "lower_ns": 5514.475476839238,
+      "upper_ns": 5775.771002927886
+    },
+    "rtree_search_10k": {
+      "median_ns": 26.9874284780121,
+      "lower_ns": 26.25665673218395,
+      "upper_ns": 27.46016536238992
+    },
+    "parse_geojson": {
+      "median_ns": 659.1135146712359,
+      "lower_ns": 647.9229135432283,
+      "upper_ns": 695.9305455967668
+    },
+    "parse_geojson_10k": {
+      "median_ns": 552985.4497354496,
+      "lower_ns": 520398.6778846154,
+      "upper_ns": 587111.5086206896
+    },
+    "parse_msgpack_10k": {
+      "median_ns": 244403.44006568144,
+      "lower_ns": 239052.46376811597,
+      "upper_ns": 248009.96336996334
+    },
+    "export_msgpack_10k": {
+      "median_ns": 148480.88348765433,
+      "lower_ns": 145162.55144032923,
+      "upper_ns": 155051.47509578546
+    },
+    "rtree_build_10k": {
+      "median_ns": 4168697.5,
+      "lower_ns": 3932897.222222222,
+      "upper_ns": 4715621.09800363
+    },
+    "rtree_search_10k_hits": {
+      "median_ns": 3808.47872151449,
+      "lower_ns": 3632.346512375442,
+      "upper_ns": 3975.401800064288
+    },
+    "voronoi_100pts": {
+      "median_ns": 356715.7916666667,
+      "lower_ns": 340858.3695652174,
+      "upper_ns": 385761.5384615385
+    },
+    "voronoi_1000pts": {
+      "median_ns": 8755907.142857142,
+      "lower_ns": 8533964.285714287,
+      "upper_ns": 9318700
+    },
+    "hex_grid_beijing": {
+      "median_ns": 68576.18686868687,
+      "lower_ns": 65118.380777471684,
+      "upper_ns": 72576.82539682538
+    }
+  },
+  "current": {
+    "area_simple": {
+      "median_ns": 47.910762211685864,
+      "lower_ns": 46.107482653886734,
+      "upper_ns": 49.86500580620188
+    },
+    "centroid_simple": {
+      "median_ns": 66.85642087322087,
+      "lower_ns": 65.03993271739856,
+      "upper_ns": 70.18957854127092
+    },
+    "buffer_simple": {
+      "median_ns": 753.080211471215,
+      "lower_ns": 732.6715807430239,
+      "upper_ns": 767.3323359845027
+    },
+    "simplify_1000pts": {
+      "median_ns": 46624.83796921415,
+      "lower_ns": 45101.75543478261,
+      "upper_ns": 47414.9386845039
+    },
+    "contains_point": {
+      "median_ns": 1381.1880136829054,
+      "lower_ns": 1351.657710354448,
+      "upper_ns": 1421.0275188637372
+    },
+    "union_two_squares": {
+      "median_ns": 5963.2600532945735,
+      "lower_ns": 5891.966254725627,
+      "upper_ns": 6070.399895646989
+    },
+    "rtree_search_10k": {
+      "median_ns": 27.964782741222983,
+      "lower_ns": 27.3350029798869,
+      "upper_ns": 28.708464698576478
+    },
+    "parse_geojson": {
+      "median_ns": 601.0829635990649,
+      "lower_ns": 577.4606411907829,
+      "upper_ns": 654.1817187881684
+    },
+    "parse_geojson_10k": {
+      "median_ns": 570161.4718614719,
+      "lower_ns": 547277.280912365,
+      "upper_ns": 598507.9670329671
+    },
+    "parse_msgpack_10k": {
+      "median_ns": 246031.6666666667,
+      "lower_ns": 239383.62470862473,
+      "upper_ns": 254462.71255060728
+    },
+    "export_msgpack_10k": {
+      "median_ns": 155119.2901234568,
+      "lower_ns": 146749.62352462352,
+      "upper_ns": 158362.7314814815
+    },
+    "rtree_build_10k": {
+      "median_ns": 3780597.023809524,
+      "lower_ns": 3711747.1867007674,
+      "upper_ns": 3906600
+    },
+    "rtree_search_10k_hits": {
+      "median_ns": 4250.225133143256,
+      "lower_ns": 3644.582033281331,
+      "upper_ns": 4781.040170178236
+    },
+    "voronoi_100pts": {
+      "median_ns": 351974.88425925927,
+      "lower_ns": 325030.3086419753,
+      "upper_ns": 386880.6277056277
+    },
+    "voronoi_1000pts": {
+      "median_ns": 9037478.86904762,
+      "lower_ns": 8790230.90909091,
+      "upper_ns": 9440398.938992042
+    },
+    "hex_grid_beijing": {
+      "median_ns": 64085.875,
+      "lower_ns": 62716.41276041667,
+      "upper_ns": 65553.19329108391
+    }
+  },
+  "first_comparison": {
+    "failures": 2,
+    "rows": [
+      {
+        "name": "area_simple",
+        "baseline_ns": 44.297095522348414,
+        "current_ns": 54.810166113944945,
+        "percent": 23.73309235656898,
+        "status": "FAIL"
+      },
+      {
+        "name": "centroid_simple",
+        "baseline_ns": 69.50513134356464,
+        "current_ns": 66.85642087322087,
+        "percent": -3.8108128409270483,
+        "status": "OK"
+      },
+      {
+        "name": "buffer_simple",
+        "baseline_ns": 759.0783851712222,
+        "current_ns": 753.080211471215,
+        "percent": -0.7901916082953977,
+        "status": "OK"
+      },
+      {
+        "name": "simplify_1000pts",
+        "baseline_ns": 45867.82482223658,
+        "current_ns": 46624.83796921415,
+        "percent": 1.6504230359983754,
+        "status": "OK"
+      },
+      {
+        "name": "contains_point",
+        "baseline_ns": 1395.9541407659092,
+        "current_ns": 1381.1880136829054,
+        "percent": -1.0577802416132476,
+        "status": "OK"
+      },
+      {
+        "name": "union_two_squares",
+        "baseline_ns": 5625.013623978201,
+        "current_ns": 5963.2600532945735,
+        "percent": 6.0132552901650165,
+        "status": "OK"
+      },
+      {
+        "name": "rtree_search_10k",
+        "baseline_ns": 26.9874284780121,
+        "current_ns": 27.964782741222983,
+        "percent": 3.621516825907217,
+        "status": "OK"
+      },
+      {
+        "name": "parse_geojson",
+        "baseline_ns": 659.1135146712359,
+        "current_ns": 601.0829635990649,
+        "percent": -8.804333362989295,
+        "status": "OK"
+      },
+      {
+        "name": "parse_geojson_10k",
+        "baseline_ns": 552985.4497354496,
+        "current_ns": 570161.4718614719,
+        "percent": 3.106053176306779,
+        "status": "OK"
+      },
+      {
+        "name": "parse_msgpack_10k",
+        "baseline_ns": 269109.8023504274,
+        "current_ns": 341242.9695304695,
+        "percent": 26.80436258732497,
+        "status": "FAIL"
+      },
+      {
+        "name": "export_msgpack_10k",
+        "baseline_ns": 148480.88348765433,
+        "current_ns": 155119.2901234568,
+        "percent": 4.470883038862327,
+        "status": "OK"
+      },
+      {
+        "name": "rtree_build_10k",
+        "baseline_ns": 4168697.5,
+        "current_ns": 3780597.023809524,
+        "percent": -9.309873796083219,
+        "status": "OK"
+      },
+      {
+        "name": "rtree_search_10k_hits",
+        "baseline_ns": 3808.47872151449,
+        "current_ns": 4250.225133143256,
+        "percent": 11.599025330857039,
+        "status": "OK"
+      },
+      {
+        "name": "voronoi_100pts",
+        "baseline_ns": 356715.7916666667,
+        "current_ns": 351974.88425925927,
+        "percent": -1.3290433219277156,
+        "status": "OK"
+      },
+      {
+        "name": "voronoi_1000pts",
+        "baseline_ns": 8755907.142857142,
+        "current_ns": 9037478.86904762,
+        "percent": 3.215791597563675,
+        "status": "OK"
+      },
+      {
+        "name": "hex_grid_beijing",
+        "baseline_ns": 68576.18686868687,
+        "current_ns": 64085.875,
+        "percent": -6.547917103185023,
+        "status": "OK"
+      }
+    ]
+  },
+  "final_comparison": {
+    "failures": 0,
+    "rows": [
+      {
+        "name": "area_simple",
+        "baseline_ns": 44.691422595088625,
+        "current_ns": 47.910762211685864,
+        "percent": 7.20348431457411,
+        "status": "OK"
+      },
+      {
+        "name": "centroid_simple",
+        "baseline_ns": 69.50513134356464,
+        "current_ns": 66.85642087322087,
+        "percent": -3.8108128409270483,
+        "status": "OK"
+      },
+      {
+        "name": "buffer_simple",
+        "baseline_ns": 759.0783851712222,
+        "current_ns": 753.080211471215,
+        "percent": -0.7901916082953977,
+        "status": "OK"
+      },
+      {
+        "name": "simplify_1000pts",
+        "baseline_ns": 45867.82482223658,
+        "current_ns": 46624.83796921415,
+        "percent": 1.6504230359983754,
+        "status": "OK"
+      },
+      {
+        "name": "contains_point",
+        "baseline_ns": 1395.9541407659092,
+        "current_ns": 1381.1880136829054,
+        "percent": -1.0577802416132476,
+        "status": "OK"
+      },
+      {
+        "name": "union_two_squares",
+        "baseline_ns": 5625.013623978201,
+        "current_ns": 5963.2600532945735,
+        "percent": 6.0132552901650165,
+        "status": "OK"
+      },
+      {
+        "name": "rtree_search_10k",
+        "baseline_ns": 26.9874284780121,
+        "current_ns": 27.964782741222983,
+        "percent": 3.621516825907217,
+        "status": "OK"
+      },
+      {
+        "name": "parse_geojson",
+        "baseline_ns": 659.1135146712359,
+        "current_ns": 601.0829635990649,
+        "percent": -8.804333362989295,
+        "status": "OK"
+      },
+      {
+        "name": "parse_geojson_10k",
+        "baseline_ns": 552985.4497354496,
+        "current_ns": 570161.4718614719,
+        "percent": 3.106053176306779,
+        "status": "OK"
+      },
+      {
+        "name": "parse_msgpack_10k",
+        "baseline_ns": 244403.44006568144,
+        "current_ns": 246031.6666666667,
+        "percent": 0.6662044529928359,
+        "status": "OK"
+      },
+      {
+        "name": "export_msgpack_10k",
+        "baseline_ns": 148480.88348765433,
+        "current_ns": 155119.2901234568,
+        "percent": 4.470883038862327,
+        "status": "OK"
+      },
+      {
+        "name": "rtree_build_10k",
+        "baseline_ns": 4168697.5,
+        "current_ns": 3780597.023809524,
+        "percent": -9.309873796083219,
+        "status": "OK"
+      },
+      {
+        "name": "rtree_search_10k_hits",
+        "baseline_ns": 3808.47872151449,
+        "current_ns": 4250.225133143256,
+        "percent": 11.599025330857039,
+        "status": "OK"
+      },
+      {
+        "name": "voronoi_100pts",
+        "baseline_ns": 356715.7916666667,
+        "current_ns": 351974.88425925927,
+        "percent": -1.3290433219277156,
+        "status": "OK"
+      },
+      {
+        "name": "voronoi_1000pts",
+        "baseline_ns": 8755907.142857142,
+        "current_ns": 9037478.86904762,
+        "percent": 3.215791597563675,
+        "status": "OK"
+      },
+      {
+        "name": "hex_grid_beijing",
+        "baseline_ns": 68576.18686868687,
+        "current_ns": 64085.875,
+        "percent": -6.547917103185023,
+        "status": "OK"
+      }
+    ]
+  }
+}

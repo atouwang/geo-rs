@@ -1,37 +1,60 @@
-const factor = { ns: 1, 'µs': 1_000, us: 1_000, ms: 1_000_000, s: 1_000_000_000 }
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
-export function parseCriterionOutput(input) {
-  const current = {}
-  let name
-  for (const line of input.split(/\r?\n/)) {
-    // Criterion prints long benchmark names on a line before the interval.
-    const interval = line.match(/^\s*(?:(\S+)\s+)?time:\s*\[[\d.eE+-]+\s+\S+\s+([\d.eE+-]+)\s+(ns|µs|us|ms|s)\s+/)
-    if (interval) {
-      const benchmark = interval[1] ?? name
-      if (benchmark) current[benchmark] = { median_ns: Number(interval[2]) * factor[interval[3]] }
-      name = undefined
-    } else if (/^\S+$/.test(line.trim()) && !line.startsWith('Benchmarking')) {
-      name = line.trim()
-    }
+export const regressionThresholdPercent = 15
+
+// Criterion's console central estimate is the mean. Read the actual median
+// and its bootstrap 95% confidence interval from the machine-readable output.
+export function readCriterionEstimates(targetDir, names) {
+  if (!Array.isArray(names) || names.length === 0 || new Set(names).size !== names.length) {
+    throw new Error('Benchmark suite must be nonempty and unique')
   }
-  return current
+  return Object.fromEntries(names.map(name => {
+    if (!/^[a-zA-Z0-9_]+$/.test(name)) throw new Error(`Invalid benchmark name: ${name}`)
+    const { median } = JSON.parse(readFileSync(join(targetDir, 'criterion', name, 'new', 'estimates.json'), 'utf8'))
+    if (median?.confidence_interval?.confidence_level !== 0.95) throw new Error(`Expected a 95% median confidence interval: ${name}`)
+    const estimate = {
+      median_ns: median.point_estimate,
+      lower_ns: median.confidence_interval.lower_bound,
+      upper_ns: median.confidence_interval.upper_bound,
+    }
+    validateEstimate(estimate, name)
+    return [name, estimate]
+  }))
 }
 
-export function compareBenchmarks(baseline, current) {
-  let failures = 0
-  const results = []
-  for (const [name, base] of Object.entries(baseline)) {
-    const curr = current[name]
-    if (!curr || !Number.isFinite(curr.median_ns) || curr.median_ns <= 0) {
-      failures++
-      results.push(`  FAIL ${name}: MISSING or invalid result`)
-      continue
-    }
-    if (!Number.isFinite(base.median_ns) || base.median_ns <= 0) throw new Error(`Invalid baseline: ${name}`)
-    const pct = (curr.median_ns - base.median_ns) / base.median_ns * 100
-    if (pct > 5) failures++
-    results.push(`  ${pct > 5 ? 'FAIL' : 'OK'} ${name}: ${base.median_ns} -> ${curr.median_ns.toFixed(1)}ns (${pct.toFixed(1)}%)`)
+function validateEstimate(value, name) {
+  if (!value || ![value.median_ns, value.lower_ns, value.upper_ns].every(n => Number.isFinite(n) && n > 0)
+      || value.lower_ns > value.median_ns || value.median_ns > value.upper_ns) {
+    throw new Error(`Invalid benchmark estimate: ${name}`)
   }
-  if (results.length === 0) throw new Error('Benchmark baseline is empty')
-  return { failures, results }
+}
+
+export function compareBenchmarks(baseline, current, thresholdPercent = regressionThresholdPercent) {
+  if (!Number.isFinite(thresholdPercent) || thresholdPercent < 0) throw new Error('Invalid regression threshold')
+  const names = Object.keys(baseline)
+  if (names.length === 0) throw new Error('Benchmark baseline is empty')
+  const rows = names.map(name => {
+    validateEstimate(baseline[name], name)
+    const base = baseline[name]
+    const curr = current[name]
+    try { validateEstimate(curr, name) } catch {
+      return { name, status: 'FAIL', reason: 'MISSING or invalid result' }
+    }
+    const percent = (curr.median_ns - base.median_ns) / base.median_ns * 100
+    const aboveThreshold = percent > thresholdPercent
+    const separated = curr.lower_ns > base.upper_ns
+    return {
+      name, baseline_ns: base.median_ns, current_ns: curr.median_ns, percent,
+      status: aboveThreshold && separated ? 'FAIL' : aboveThreshold ? 'NOISE' : 'OK',
+      reason: aboveThreshold && !separated ? '95% confidence intervals overlap' : undefined,
+    }
+  })
+  return {
+    failures: rows.filter(row => row.status === 'FAIL').length,
+    rows,
+    results: rows.map(row => row.percent === undefined
+      ? `FAIL ${row.name}: ${row.reason}`
+      : `${row.status} ${row.name}: ${row.baseline_ns.toFixed(1)} -> ${row.current_ns.toFixed(1)} ns (${row.percent.toFixed(1)}%)${row.reason ? `; ${row.reason}` : ''}`),
+  }
 }

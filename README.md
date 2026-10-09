@@ -68,7 +68,9 @@ pnpm typecheck
 pnpm build
 ```
 
-Tests include JavaScript-to-real-WASM transport, handle lifetimes, worker failures, Vue concurrency/rendering and benchmark-output parsing. For interactive browser suites, run the site and open /tests/browser-smoke.html and /tests/browser-vue.html. To verify packaged output, run pnpm --filter @geo-rs/site build:browser, then preview dist/browser as described in [CONTRIBUTING.md](CONTRIBUTING.md).
+Tests include JavaScript-to-real-WASM transport, handle lifetimes, worker failures, Vue concurrency/rendering and benchmark-gate validation. For interactive browser suites, run the site and open /tests/browser-smoke.html and /tests/browser-vue.html. To verify packaged output, run pnpm --filter @geo-rs/site build:browser, then preview dist/browser as described in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Native performance CI compares 16 workloads with a baseline commit on the same runner for push/PR/manual runs. Confirmed regressions fail the workflow, and measurements/logs are uploaded. Run pnpm bench -- HEAD^ locally; see [PERFORMANCE.md](docs/PERFORMANCE.md) for thresholds, reproduction and measurement boundaries.
 
 ## License
 

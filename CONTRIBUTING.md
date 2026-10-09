@@ -29,7 +29,7 @@ pnpm typecheck
 pnpm build
 ```
 
-pnpm test runs SDK tests, real WASM transport tests, Vue concurrency/rendering tests and benchmark-parser tests. It requires the generated WASM package. Lint checks both TypeScript and Vue SFCs; build includes the core library, Vue library and site.
+pnpm test runs SDK tests, real WASM transport tests, Vue concurrency/rendering tests and benchmark-gate tests. It requires the generated WASM package. Lint checks both TypeScript and Vue SFCs; build includes the core library, Vue library and site.
 
 With pnpm dev running, open http://127.0.0.1:5173/tests/browser-smoke.html and run the browser suite. It covers actual dedicated/shared workers, stateless APIs, reference cleanup and client memory-budget isolation. Also check the Playground success, failure, recovery and route-unmount states. Recheck production output using vite preview after pnpm build.
 
@@ -48,11 +48,12 @@ Open /tests/browser-smoke.html and /tests/browser-vue.html at the preview URL an
 wasm-pack build --release --target web crates/geo-wasm
 pnpm build
 cargo bench --bench core_ops
+pnpm bench -- HEAD^
 ```
 
 Optional: add --no-opt to skip Binaryen optimization while retaining Rust release optimization.
 
-Benchmark CI currently reports a warning against a stored, machine-specific native baseline. Missing output or a regression over 5% makes the comparison fail. Native timings do not measure Worker/RPC/import/export costs or prove a browser speedup over Turf.js.
+Benchmark CI runs on push, pull requests and manual dispatch. It compiles both versions first, then pairs each case on the same runner using the candidate's 16-case harness with alternating order. Push compares with the pre-push commit, PR compares with its base SHA, and manual dispatch defaults to HEAD^. Missing/invalid output and build errors fail the job. A median slowdown over 15% with separated 95% confidence intervals is rerun on both commits with reversed order; a confirmed regression fails CI. Reports, metadata and logs are uploaded for 30 days. See [PERFORMANCE.md](docs/PERFORMANCE.md) for reproduction and limits. The old .github/benchmarks/baseline.json is historical and is no longer used as a gate.
 
 ## Structure and commits
 
