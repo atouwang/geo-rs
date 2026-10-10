@@ -6,11 +6,13 @@
     "dev": "pnpm --filter @geo-rs/site dev",
     "build": "pnpm --filter @geo-rs/core build && pnpm --filter @geo-rs/vue build && pnpm --filter @geo-rs/site build",
     "typecheck": "pnpm --filter @geo-rs/core build && pnpm --filter @geo-rs/vue build && pnpm -r typecheck",
-    "lint": "pnpm -r lint && eslint playwright.config.mjs .github/scripts/",
+    "lint": "pnpm -r lint && eslint playwright.config.mjs playwright.package.config.mjs .github/scripts/",
     "test": "pnpm -r test && pnpm test:tooling",
     "test:tooling": "node --test .github/scripts/bench-compare.test.mjs",
     "test:browser": "pnpm --filter @geo-rs/core build && pnpm --filter @geo-rs/vue build && pnpm --filter @geo-rs/site build:browser && playwright test",
-    "bench": "node .github/scripts/bench-run.mjs"
+    "bench": "node .github/scripts/bench-run.mjs",
+    "package:prepare": "node .github/scripts/package-consumer.mjs",
+    "test:package": "pnpm --filter @geo-rs/core build && pnpm --filter @geo-rs/vue build && pnpm package:prepare && playwright test --config playwright.package.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",

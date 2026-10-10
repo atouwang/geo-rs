@@ -72,12 +72,22 @@ jobs:
         run: pnpm exec playwright install --with-deps --only-shell chromium
       - name: Test packaged SDK and Vue in Chromium
         run: pnpm test:browser
+      - name: Test isolated npm tarball consumers
+        run: pnpm test:package
       - name: Upload browser regression reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: browser-regressions-${{ github.sha }}
           path: target/browser-tests/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload packed consumer reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: packed-consumer-${{ github.sha }}
+          path: target/package-tests/
           if-no-files-found: warn
           retention-days: 14
 

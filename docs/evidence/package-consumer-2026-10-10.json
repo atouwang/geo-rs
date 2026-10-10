@@ -1,0 +1,257 @@
+{
+  "date": "2026-10-10",
+  "status": "local browser validation passed; delivery record captured before commit",
+  "baseline_commit": "9067788f195258e7c2d2b33e593264ecd83f29c7",
+  "regression": {
+    "consumer_outside_repository": true,
+    "strict": true,
+    "skipLibCheck": false,
+    "types": [],
+    "baseline_report": "target/package-tests/run-rLad0J",
+    "baseline_typecheck_errors": [
+      "node_modules/@geo-rs/core/dist/api/measure.d.ts(1,51): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/core/dist/api/set-ops.d.ts(1,53): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/core/dist/api/voronoi.d.ts(1,56): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/core/dist/types/index.d.ts(1,82): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/components/render-geometry.d.ts(1,59): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useBuffer.d.ts(2,30): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useBuffer.d.ts(3,88): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useBuffer.d.ts(3,120): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useBuffer.d.ts(3,182): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useBuffer.d.ts(3,210): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useVoronoi.d.ts(1,47): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useVoronoi.d.ts(2,99): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useVoronoi.d.ts(2,126): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "node_modules/@geo-rs/vue/dist/composables/useVoronoi.d.ts(2,198): error TS2307: Cannot find module 'geojson' or its corresponding type declarations.",
+      "tests/browser-smoke.ts(82,48): error TS7006: Parameter 'f' implicitly has an 'any' type.",
+      "tests/browser-smoke.ts(83,31): error TS7031: Binding element 'x' implicitly has an 'any' type.",
+      "tests/browser-smoke.ts(83,33): error TS7031: Binding element 'y' implicitly has an 'any' type.",
+      ""
+    ],
+    "candidate_report": "target/package-tests/run-q3HX1t",
+    "candidate_typecheck": "Consumer typecheck passed with skipLibCheck=false"
+  },
+  "packages": [
+    {
+      "name": "@geo-rs/core",
+      "tarball": "target/package-tests/run-q3HX1t/geo-rs-core-0.1.0.tgz",
+      "sha256": "d83070b65e27352df2bb399f5123c15c3fa7482fbe7e5cd775b95ba533fbd7bc",
+      "files": [
+        "dist/api/measure.d.ts",
+        "dist/api/measure.d.ts.map",
+        "dist/api/predicates.d.ts",
+        "dist/api/predicates.d.ts.map",
+        "dist/api/set-ops.d.ts",
+        "dist/api/set-ops.d.ts.map",
+        "dist/api/shared.d.ts",
+        "dist/api/shared.d.ts.map",
+        "dist/api/voronoi.d.ts",
+        "dist/api/voronoi.d.ts.map",
+        "dist/assets/engine.shared.worker-CV5aS1pV.js",
+        "dist/assets/engine.worker-GMr30yqq.js",
+        "dist/engine.d.ts",
+        "dist/engine.d.ts.map",
+        "dist/index.d.ts",
+        "dist/index.d.ts.map",
+        "dist/index.mjs",
+        "dist/memory-manager.d.ts",
+        "dist/memory-manager.d.ts.map",
+        "dist/types/index.d.ts",
+        "dist/types/index.d.ts.map",
+        "dist/worker-manager.d.ts",
+        "dist/worker-manager.d.ts.map",
+        "dist/worker/engine.shared.worker.d.ts",
+        "dist/worker/engine.shared.worker.d.ts.map",
+        "dist/worker/engine.worker.d.ts",
+        "dist/worker/engine.worker.d.ts.map",
+        "dist/worker/runtime.d.ts",
+        "dist/worker/runtime.d.ts.map",
+        "package.json"
+      ],
+      "tarball_bytes": 661123
+    },
+    {
+      "name": "@geo-rs/vue",
+      "tarball": "target/package-tests/run-q3HX1t/geo-rs-vue-0.1.0.tgz",
+      "sha256": "955bcc2475d2b9c476cf0558abd97d6b35686e0469d8b9e39a8e1ca0c695ab8c",
+      "files": [
+        "dist/components/GeoCanvas.vue.d.ts",
+        "dist/components/GeoCanvas.vue.d.ts.map",
+        "dist/components/render-geometry.d.ts",
+        "dist/components/render-geometry.d.ts.map",
+        "dist/composables/async-state.d.ts",
+        "dist/composables/async-state.d.ts.map",
+        "dist/composables/useBuffer.d.ts",
+        "dist/composables/useBuffer.d.ts.map",
+        "dist/composables/useVoronoi.d.ts",
+        "dist/composables/useVoronoi.d.ts.map",
+        "dist/index.d.ts",
+        "dist/index.d.ts.map",
+        "dist/index.mjs",
+        "dist/vue.css",
+        "package.json"
+      ],
+      "tarball_bytes": 4465
+    }
+  ],
+  "baseline_file_counts": {
+    "@geo-rs/core": 52,
+    "@geo-rs/vue": 27
+  },
+  "local_dependency_mode": "copied installed dependencies; geo-rs packages extracted from tarballs",
+  "local_dependency_versions": {
+    "@geo-rs/core": "0.1.0",
+    "@geo-rs/vue": "0.1.0",
+    "vue": "3.5.34",
+    "typescript": "5.9.3",
+    "vite": "6.4.2",
+    "@msgpack/msgpack": "3.1.3",
+    "@types/geojson": "7946.0.16",
+    "@vue/shared": "3.5.34",
+    "@vue/runtime-dom": "3.5.34",
+    "@vue/compiler-sfc": "3.5.34",
+    "@vue/server-renderer": "3.5.34",
+    "@vue/compiler-dom": "3.5.34",
+    "esbuild": "0.25.12",
+    "fdir": "6.5.0",
+    "picomatch": "4.0.4",
+    "postcss": "8.5.14",
+    "rollup": "4.60.4",
+    "tinyglobby": "0.2.16",
+    "csstype": "3.2.3",
+    "@vue/runtime-core": "3.5.34",
+    "@vue/reactivity": "3.5.34",
+    "@babel/parser": "7.29.3",
+    "estree-walker": "2.0.2",
+    "magic-string": "0.30.21",
+    "source-map-js": "1.2.1",
+    "@vue/compiler-ssr": "3.5.34",
+    "@vue/compiler-core": "3.5.34",
+    "@esbuild/win32-x64": "0.25.12",
+    "nanoid": "3.3.12",
+    "picocolors": "1.1.1",
+    "@types/estree": "1.0.8",
+    "@rollup/rollup-win32-x64-gnu": "4.60.4",
+    "@rollup/rollup-win32-x64-msvc": "4.60.4",
+    "@babel/types": "7.29.0",
+    "@jridgewell/sourcemap-codec": "1.5.5",
+    "entities": "7.0.1",
+    "@babel/helper-string-parser": "7.27.1",
+    "@babel/helper-validator-identifier": "7.28.5"
+  },
+  "node": "25.2.1",
+  "pnpm": "10.32.1",
+  "consumer_build": {
+    "base": "/package-consumer/",
+    "passed": true,
+    "log": "vite v6.4.2 building for production...\ntransforming...\n✓ 13 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/tests/browser-smoke.html                            0.43 kB │ gzip:  0.27 kB\ndist/tests/browser-vue.html                              0.55 kB │ gzip:  0.31 kB\ndist/assets/engine.worker-GMr30yqq-BZ0S8g_S.js         981.41 kB\ndist/assets/engine.shared.worker-CV5aS1pV-SeQJHAHm.js  981.47 kB\ndist/assets/vue-CWU89Pgv.css                             0.11 kB │ gzip:  0.12 kB\ndist/assets/smoke-DfHeI8OB.js                            3.73 kB │ gzip:  1.46 kB\ndist/assets/index-sbF8xv88.js                           31.76 kB │ gzip:  9.38 kB\ndist/assets/vue-GQLN_s98.js                             67.47 kB │ gzip: 26.80 kB\n✓ built in 439ms\n",
+    "resolved_entries_inside_consumer": true,
+    "owned_consumer_removed": true
+  },
+  "passed_checks": {
+    "pnpm test": {
+      "SDK": 56,
+      "Vue": 13,
+      "tooling": 10
+    },
+    "pnpm lint": true,
+    "pnpm typecheck": true,
+    "pnpm build": true,
+    "frozen_offline_lockfile_consistency": true,
+    "workflow_yaml": true,
+    "git diff --check": true,
+    "targeted_script_and_config_lint_after_preview_fix": true,
+    "root_browser_production_regression": {
+      "startTime": "2026-10-10T05:03:44.612Z",
+      "duration": 7264.528,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    }
+  },
+  "browser": {
+    "status": "passed",
+    "automated_report": "target/package-tests/browser/results.json",
+    "playwright_version": "1.64.0",
+    "stats": {
+      "startTime": "2026-10-10T05:01:05.926Z",
+      "duration": 20568.344,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "suites": 2,
+    "iterations_per_suite": 2,
+    "behavioral_groups_per_iteration": 11,
+    "in_app": {
+      "worker": "ALL PASSED (5 groups)",
+      "vue": "ALL PASSED (6 groups)",
+      "console_warnings": [],
+      "console_errors": [],
+      "screenshots": [
+        "docs/evidence/package-worker-2026-10-10.png",
+        "docs/evidence/package-vue-2026-10-10.png"
+      ]
+    },
+    "base": "/package-consumer/"
+  },
+  "delivery": {
+    "status": "recorded before commit/push; hosted results saved separately under target/audit/package-consumer-2026-10-10",
+    "remote_master_verified_via_api": "9067788f195258e7c2d2b33e593264ecd83f29c7",
+    "remote_master_verified_via_git": "9067788f195258e7c2d2b33e593264ecd83f29c7"
+  },
+  "limits": [
+    "Local copied dependency mode does not validate real pnpm installation. Hosted CI uses the default installer.",
+    "Earlier failed attempts are preserved, not counted as passes.",
+    "No Rust change or newly measured runtime performance benefit."
+  ],
+  "previous_attempt": {
+    "status": "candidate validated locally except installer/browser; delivery pending",
+    "browser": {
+      "status": "blocked; no suites executed",
+      "report": "target/package-tests/browser/results.json",
+      "automated_errors": [
+        {
+          "message": "\u001b[31mTimed out waiting 60s for the plugin setup to run\u001b[39m"
+        },
+        {
+          "message": "\u001b[31mTimed out waiting 60s for the teardown for plugin setup to run\u001b[39m"
+        }
+      ],
+      "global_timeout_ms": 60000,
+      "in_app_attempts": [
+        {
+          "suite": "browser-smoke",
+          "error": "ERR_CONNECTION_TIMED_OUT"
+        },
+        {
+          "suite": "browser-vue",
+          "error": "ERR_CONNECTION_TIMED_OUT"
+        },
+        {
+          "suite": "browser-smoke",
+          "stage": "corrected preview root",
+          "error": "ERR_CONNECTION_TIMED_OUT"
+        }
+      ],
+      "preview_root": "report directory, serving default dist output; preview printed /package-consumer/ URL",
+      "configured_global_timeout_ms": 180000
+    },
+    "delivery": {
+      "committed": false,
+      "pushed": false,
+      "hosted_ci": "not run for candidate",
+      "git_metadata": "read-only under current session permissions",
+      "remote_refresh_error": "fatal: unable to access https://github.com/atouwang/geo-rs.git/: getaddrinfo() thread failed to start",
+      "cached_origin_master": "9067788f195258e7c2d2b33e593264ecd83f29c7"
+    }
+  },
+  "installer_retry": {
+    "online_report": "target/package-tests/run-tLKPv2/install.log",
+    "online_error": "ERR_PNPM_META_FETCH_FAIL / ECONNRESET before TLS connection",
+    "offline_report": "target/package-tests/run-U750dL/install.log",
+    "offline_error": "ERR_PNPM_NO_OFFLINE_META for vue@3.5.34"
+  }
+}

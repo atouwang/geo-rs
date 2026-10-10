@@ -51,6 +51,16 @@ Playwright starts and stops its own production preview on port 4187; an occupied
 
 CI runs these checks on push/PR/manual dispatch with a Rust release WASM build (--no-opt skips Binaryen). It installs Chromium with system dependencies and uploads reports for 14 days. Current automation covers Chromium; other browser engines and Playground route interactions remain separate checks. See [Playwright CI guidance](https://playwright.dev/docs/ci).
 
+## Isolated npm package consumption
+
+```sh
+pnpm test:package
+```
+
+This builds and packs core/Vue with pnpm, installs the tarballs in a fresh temporary project outside the repository, and checks public declarations with strict TypeScript and skipLibCheck=false. A production Vite build under /package-consumer/ then runs both real Worker/Vue suites twice in Chromium on port 4189. The consumer has no workspace aliases or source imports. Its project is removed after preparation; tarballs, dependency lock, build/typecheck logs, metadata and browser reports remain in target/package-tests/. CI uploads these reports for 14 days.
+
+For a restricted local environment that cannot write pnpm's cache, set GEO_RS_PACKAGE_COPY_DEPS=1. This explicitly recorded mode copies already installed dependency files according to the packed manifests; core/Vue still come from the tarballs. It validates types and built runtime consumption, but does not validate pnpm dependency installation. CI uses the normal installer. Public GeoJSON declarations require @types/geojson as a package dependency, and the published packages include only dist/ and package.json.
+
 ## Production and benchmarks
 
 ```sh

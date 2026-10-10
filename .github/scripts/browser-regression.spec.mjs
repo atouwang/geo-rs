@@ -25,7 +25,7 @@ for (const suite of suites) {
     })
 
     try {
-      const response = await page.goto(`/tests/${suite.path}.html`)
+      const response = await page.goto(`tests/${suite.path}.html`)
       expect(response?.status()).toBe(200)
       const run = page.locator('#run')
       const output = page.locator('#results')

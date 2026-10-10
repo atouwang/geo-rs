@@ -68,7 +68,7 @@ pnpm typecheck
 pnpm build
 ```
 
-Tests include JavaScript-to-real-WASM transport, handle lifetimes, worker failures, Vue concurrency/rendering and benchmark-gate validation. CI also runs both packaged browser suites twice in Chromium. Locally, install Chromium with pnpm exec playwright install chromium, then run pnpm test:browser. For interactive checks, run the site and open /tests/browser-smoke.html and /tests/browser-vue.html; see [CONTRIBUTING.md](CONTRIBUTING.md) for preview commands and failure reports.
+Tests include JavaScript-to-real-WASM transport, handle lifetimes, worker failures, Vue concurrency/rendering and benchmark-gate validation. CI also runs both packaged browser suites twice in Chromium. Locally, install Chromium with pnpm exec playwright install chromium, then run pnpm test:browser. Run pnpm test:package to check actual npm tarballs in an isolated consumer with strict public declaration checking and a nested-base production browser build. For interactive checks, run the site and open /tests/browser-smoke.html and /tests/browser-vue.html; see [CONTRIBUTING.md](CONTRIBUTING.md) for preview commands and failure reports.
 
 Native performance CI compares 20 workloads, including arena storage, deduplication and full/sparse statistics, with a baseline commit on the same runner for push/PR/manual runs. Confirmed regressions fail the workflow, and measurements/logs are uploaded. Run pnpm bench -- HEAD^ locally; see [PERFORMANCE.md](docs/PERFORMANCE.md) for thresholds, reproduction and measurement boundaries.
 
